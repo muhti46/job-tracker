@@ -278,12 +278,14 @@ $("#board").addEventListener("dragstart", (event) => {
   const card = event.target.closest(".job-card");
   const columnHead = event.target.closest("[data-column-status]");
   if (card) {
+    event.stopPropagation();
     draggedCardId = card.dataset.id;
     draggedCardOriginalStatus = jobs.find((job) => job.id === draggedCardId)?.status || "applied";
     card.classList.add("is-dragging");
     event.dataTransfer.effectAllowed = "move";
     event.dataTransfer.setData("text/plain", `card:${draggedCardId}`);
   } else if (columnHead) {
+    event.stopPropagation();
     draggedColumnStatus = columnHead.dataset.columnStatus;
     columnHead.classList.add("is-dragging");
     event.dataTransfer.effectAllowed = "move";
@@ -294,6 +296,27 @@ $("#board").addEventListener("dragover", (event) => {
   const column = event.target.closest(".column");
   if (!column) return;
   event.preventDefault();
+  if (draggedCardId) {
+    const draggedCard = document.querySelector(`.job-card[data-id="${draggedCardId}"]`);
+    const cards = column.querySelector(".cards");
+    const job = jobs.find((item) => item.id === draggedCardId);
+    if (draggedCard && cards && job) {
+      const previousColumn = document.querySelector(`.column[data-status="${job.status}"]`);
+      const targetCards = [...cards.querySelectorAll(".job-card")].filter((card) => card !== draggedCard);
+      const beforeCard = targetCards.find((card) => event.clientY < card.getBoundingClientRect().top + card.getBoundingClientRect().height / 2);
+      if (beforeCard) cards.insertBefore(draggedCard, beforeCard);
+      else cards.appendChild(draggedCard);
+      cards.querySelector(".empty-column")?.remove();
+      if (job.status !== column.dataset.status) {
+        job.status = column.dataset.status;
+        if (previousColumn && !previousColumn.querySelector(".job-card")) {
+          previousColumn.querySelector(".cards").innerHTML = '<p class="empty-column">No applications here</p>';
+        }
+      }
+    }
+    column.classList.add("drag-over");
+    return;
+  }
   if (draggedColumnStatus) {
     column.classList.add("drag-over");
     const draggedColumn = document.querySelector(
@@ -309,21 +332,6 @@ $("#board").addEventListener("dragover", (event) => {
       }
       syncColumnOrderFromDom();
     }
-    return;
-  }
-  if (draggedCardId) {
-    const draggedCard = document.querySelector(`.job-card[data-id="${draggedCardId}"]`);
-    const cards = column.querySelector(".cards");
-    if (draggedCard && cards) {
-      const targetCards = [...cards.querySelectorAll(".job-card")].filter((card) => card !== draggedCard);
-      const beforeCard = targetCards.find((card) => event.clientY < card.getBoundingClientRect().top + card.getBoundingClientRect().height / 2);
-      if (beforeCard) cards.insertBefore(draggedCard, beforeCard);
-      else cards.appendChild(draggedCard);
-      cards.querySelector(".empty-column")?.remove();
-      const job = jobs.find((item) => item.id === draggedCardId);
-      if (job) job.status = column.dataset.status;
-    }
-    column.classList.add("drag-over");
     return;
   }
   column.classList.add("drag-over");
