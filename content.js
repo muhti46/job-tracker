@@ -34,10 +34,24 @@
       ...document.querySelectorAll('h2, h3, h4, [role="heading"]'),
     ].find((element) => pattern.test(element.textContent || ""));
     if (!heading) return "";
-    const container = heading.parentElement;
-    return (container?.innerText || heading.nextElementSibling?.innerText || "")
-      .replace(/\s+/g, " ")
-      .trim();
+    const headingText = (heading.textContent || "").trim();
+    const directSibling = heading.nextElementSibling;
+    const siblingText = (directSibling?.innerText || "").trim();
+    if (siblingText && siblingText.length > headingText.length) {
+      return siblingText.replace(/\s+/g, " ").trim();
+    }
+    let ancestor = heading.parentElement;
+    for (let level = 0; ancestor && level < 4; level += 1) {
+      const content = [...ancestor.children]
+        .filter((child) => child !== heading && !child.contains(heading))
+        .map((child) => child.innerText || child.textContent || "")
+        .join(" ")
+        .replace(/\s+/g, " ")
+        .trim();
+      if (content.length > 40) return content;
+      ancestor = ancestor.parentElement;
+    }
+    return "";
   }
 
   function locationCandidate() {
@@ -49,8 +63,7 @@
         ".job-details-jobs-unified-top-card__primary-description-container span, .jobs-unified-top-card__primary-description-container span",
       ),
     ];
-    return (
-      candidates
+    const candidateFromElements = candidates
         .map((element) =>
           (element.innerText || element.textContent || "").trim(),
         )
@@ -60,6 +73,20 @@
             value.length < 120 &&
             !/remote|hybrid|on-site|onsite|full-time|part-time/i.test(value) &&
             !/^mbi gmbh$/i.test(value),
+        ) || "";
+    if (candidateFromElements) return candidateFromElements;
+    return (
+      pageText()
+        .split(/[\n·•|]/)
+        .map((value) => value.trim())
+        .find(
+          (value) =>
+            value &&
+            value.length < 100 &&
+            /,|\b[A-Z][a-z]+\b/.test(value) &&
+            !/remote|hybrid|on-site|onsite|full-time|part-time|mbi gmbh/i.test(
+              value,
+            ),
         ) || ""
     );
   }
@@ -136,8 +163,6 @@
       firstText([
         ".job-details-jobs-unified-top-card__bullet",
         ".jobs-unified-top-card__bullet",
-        ".job-details-jobs-unified-top-card__primary-description-container .tvm__text--low-emphasis",
-        ".jobs-unified-top-card__primary-description-container .tvm__text--low-emphasis",
         ".topcard__flavor--bullet",
         '[class*="top-card"][class*="bullet"]',
       ]) ||
@@ -150,23 +175,18 @@
       "" ||
       locationCandidate() ||
       firstText([
-        ".tvm__text--low-emphasis",
         '[class*="top-card"] [class*="bullet"]',
-        '[class*="primary-description"] span',
       ]) ||
       "";
     const description =
-      firstText([
-        ".jobs-description__content .jobs-box__html-content",
-        ".jobs-description__content",
-        ".jobs-box__html-content",
-        ".jobs-description-content__text",
-        ".jobs-description-content__text--stretch",
-        '[class*="jobs-description"]',
-      ]) ||
       textNearHeading(
         /about (the )?job|job description|description|details zum jobangebot|stellenbeschreibung/i,
       ) ||
+      firstText([
+        ".jobs-description__content .jobs-box__html-content",
+        ".jobs-description-content__text",
+        ".jobs-description-content__text--stretch",
+      ]) ||
       longestText(
         [
           '[class*="jobs-description"]',
