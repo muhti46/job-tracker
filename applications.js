@@ -104,16 +104,40 @@ function openModal(id) {
   const form = $("#modal-form");
   $("#modal-company").textContent = job.company || "Company not specified";
   $("#modal-title").textContent = job.title || "Edit application";
-  $("#modal-subtitle").textContent = `${job.location || "Location not specified"} · ${job.workType || "Work arrangement not specified"}`;
-  ["title", "company", "location", "workType", "salary", "description", "notes"].forEach((field) => {
+  $("#modal-subtitle").textContent =
+    `${job.location || "Location not specified"} · ${job.workType || "Work arrangement not specified"}`;
+  [
+    "title",
+    "company",
+    "location",
+    "workType",
+    "salary",
+    "description",
+    "notes",
+  ].forEach((field) => {
     if (form.elements[field]) form.elements[field].value = job[field] || "";
   });
   form.elements.status.value = job.status || "applied";
-  $("#modal-timeline").innerHTML = `<p>Created ${formatDate(job.createdAt)}</p>${job.updatedAt ? `<p>Last updated ${formatDate(job.updatedAt)}</p>` : ""}`;
+  $("#modal-timeline").innerHTML =
+    `<p>Created ${formatDate(job.createdAt)}</p>${job.updatedAt ? `<p>Last updated ${formatDate(job.updatedAt)}</p>` : ""}`;
+  renderContacts(job);
+  $("#contact-form").classList.add("hidden");
   $("#job-modal").classList.remove("hidden");
   document.body.classList.add("modal-open");
   form.dataset.id = id;
   switchTab("details");
+}
+
+function renderContacts(job) {
+  const contacts = job.contacts || [];
+  $("#contacts-list").innerHTML = contacts.length
+    ? contacts
+        .map(
+          (contact, index) =>
+            `<article class="contact-card"><div class="contact-avatar">${escapeHtml((contact.name || "?").slice(0, 1).toUpperCase())}</div><div class="contact-info"><strong>${escapeHtml(contact.name || "Unnamed contact")}</strong><span>${escapeHtml(contact.position || "Position not specified")}${contact.company ? ` · ${escapeHtml(contact.company)}` : ""}</span>${contact.email ? `<a href="mailto:${escapeHtml(contact.email)}">${escapeHtml(contact.email)}</a>` : ""}<p>${escapeHtml(contact.notes || "")}</p></div><button class="contact-delete" data-contact-index="${index}" type="button" aria-label="Delete contact">×</button></article>`,
+        )
+        .join("")
+    : '<div class="contacts-empty">Contacts will appear here.<br><button id="empty-add-contact" class="empty-add-contact" type="button">+ Add contact</button></div>';
 }
 
 function closeModal() {
@@ -122,8 +146,16 @@ function closeModal() {
 }
 
 function switchTab(tab) {
-  document.querySelectorAll("[data-tab]").forEach((button) => button.classList.toggle("active", button.dataset.tab === tab));
-  document.querySelectorAll("[data-panel]").forEach((panel) => panel.classList.toggle("active", panel.dataset.panel === tab));
+  document
+    .querySelectorAll("[data-tab]")
+    .forEach((button) =>
+      button.classList.toggle("active", button.dataset.tab === tab),
+    );
+  document
+    .querySelectorAll("[data-panel]")
+    .forEach((panel) =>
+      panel.classList.toggle("active", panel.dataset.panel === tab),
+    );
 }
 
 function showFeedback(message) {
@@ -229,16 +261,66 @@ $("#board").addEventListener("click", (event) => {
 $("#job-modal").addEventListener("click", (event) => {
   if (event.target.dataset.action === "close-modal") closeModal();
 });
-document.querySelectorAll("[data-tab]").forEach((button) => button.addEventListener("click", () => switchTab(button.dataset.tab)));
+document
+  .querySelectorAll("[data-tab]")
+  .forEach((button) =>
+    button.addEventListener("click", () => switchTab(button.dataset.tab)),
+  );
 $("#modal-form").addEventListener("submit", async (event) => {
   event.preventDefault();
   const job = jobs.find((item) => item.id === event.currentTarget.dataset.id);
   if (!job) return;
-  Object.assign(job, Object.fromEntries(new FormData(event.currentTarget).entries()), { updatedAt: new Date().toISOString() });
+  Object.assign(
+    job,
+    Object.fromEntries(new FormData(event.currentTarget).entries()),
+    { updatedAt: new Date().toISOString() },
+  );
   await chrome.storage.local.set({ jobs });
   renderBoard();
   closeModal();
   showFeedback("Changes saved.");
+});
+$("#add-contact-button").addEventListener("click", () => {
+  $("#contact-form").classList.remove("hidden");
+  $("#contact-form").querySelector('[name="contactName"]').focus();
+});
+$("#cancel-contact-button").addEventListener("click", () => {
+  $("#contact-form").classList.add("hidden");
+});
+$("#save-contact-button").addEventListener("click", async () => {
+  const form = $("#contact-form");
+  const job = jobs.find((item) => item.id === $("#modal-form").dataset.id);
+  if (!job) return;
+  const contact = {
+    name: form.querySelector('[name="contactName"]').value.trim(),
+    position: form.querySelector('[name="contactPosition"]').value.trim(),
+    company: form.querySelector('[name="contactCompany"]').value.trim(),
+    email: form.querySelector('[name="contactEmail"]').value.trim(),
+    phone: form.querySelector('[name="contactPhone"]').value.trim(),
+    linkedin: form.querySelector('[name="contactLinkedin"]').value.trim(),
+    notes: form.querySelector('[name="contactNotes"]').value.trim(),
+  };
+  if (!contact.name) return showFeedback("Add a contact name first.");
+  job.contacts = [...(job.contacts || []), contact];
+  await chrome.storage.local.set({ jobs });
+  renderContacts(job);
+  form.reset();
+  form.classList.add("hidden");
+  showFeedback("Contact added.");
+});
+$("#contacts-list").addEventListener("click", async (event) => {
+  if (event.target.id === "empty-add-contact") {
+    $("#contact-form").classList.remove("hidden");
+    return;
+  }
+  const button = event.target.closest("[data-contact-index]");
+  if (!button) return;
+  const job = jobs.find((item) => item.id === $("#modal-form").dataset.id);
+  if (!job) return;
+  job.contacts.splice(Number(button.dataset.contactIndex), 1);
+  await chrome.storage.local.set({ jobs });
+  renderContacts(job);
+  showFeedback("Contact removed.");
 });
 document.addEventListener("keydown", (event) => {
   if (event.key === "Escape") closeModal();
