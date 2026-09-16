@@ -128,7 +128,8 @@
   }
 
   function countryLocation() {
-    const countries = /^(deutschland|germany|österreich|austria|schweiz|switzerland|france|frankreich|netherlands|niederlande)$/i;
+    const countries =
+      /^(deutschland|germany|österreich|austria|schweiz|switzerland|france|frankreich|netherlands|niederlande)$/i;
     for (const element of document.querySelectorAll("body *")) {
       const value = (element.innerText || element.textContent || "")
         .replace(/\s+/g, " ")
@@ -297,28 +298,38 @@
   }
 
   function addFloatingButton() {
-    if (
-      document.getElementById(buttonId) ||
-      !location.pathname.startsWith("/jobs/")
-    )
+    if (!location.pathname.startsWith("/jobs/"))
       return;
+    const existingButton = document.getElementById(buttonId);
+    if (existingButton) {
+      positionSaveButton(existingButton);
+      return;
+    }
     const button = document.createElement("button");
     button.id = buttonId;
-    button.textContent = "Save job";
+    button.type = "button";
+    button.title = "Save job";
+    button.setAttribute("aria-label", "Save job");
+    button.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v11m0 0 4-4m-4 4-4-4M5 17v2a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-2"/></svg>';
     Object.assign(button.style, {
       position: "fixed",
       right: "22px",
       bottom: "24px",
       zIndex: "2147483647",
-      border: "0",
-      borderRadius: "6px",
-      padding: "12px 16px",
+      display: "grid",
+      placeItems: "center",
+      width: "46px",
+      height: "46px",
+      padding: "0",
+      border: "1px solid #8acb6e",
+      borderRadius: "12px",
       color: "#18301c",
       background: "#b7f397",
       boxShadow: "0 8px 24px rgba(23,33,27,.18)",
-      font: "700 13px Arial, sans-serif",
       cursor: "pointer",
     });
+    const icon = button.querySelector("svg");
+    Object.assign(icon.style, { width: "21px", height: "21px", fill: "none", stroke: "currentColor", strokeWidth: "1.8", strokeLinecap: "round", strokeLinejoin: "round" });
     button.addEventListener("click", async () => {
       const job = {
         ...(await collectAfterExpanding()),
@@ -328,10 +339,25 @@
       };
       const data = await chrome.storage.local.get({ jobs: [] });
       await chrome.storage.local.set({ jobs: [job, ...data.jobs] });
-      button.textContent = "Saved";
+      button.title = "Saved";
+      button.setAttribute("aria-label", "Saved");
       button.style.background = "#dce4de";
     });
     document.body.appendChild(button);
+    positionSaveButton(button);
+  }
+
+  function positionSaveButton(button) {
+    const saveButton = [...document.querySelectorAll("button, a")].find((element) =>
+      /^(speichern|save|saved)$/i.test((element.innerText || element.textContent || "").trim()),
+    );
+    if (!saveButton || saveButton === button) return;
+    button.style.position = "relative";
+    button.style.right = "auto";
+    button.style.bottom = "auto";
+    button.style.marginLeft = "10px";
+    button.style.verticalAlign = "middle";
+    saveButton.insertAdjacentElement("afterend", button);
   }
 
   addFloatingButton();
