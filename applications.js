@@ -98,6 +98,34 @@ function renderCard(job) {
   return `<article class="job-card" draggable="true" data-id="${escapeHtml(job.id)}"><p class="company">${escapeHtml(job.company || "Company not specified")}</p><h3 class="job-title">${escapeHtml(job.title || "Untitled job")}</h3><div class="card-meta">${job.location ? `<span>⌖ ${escapeHtml(job.location)}</span>` : ""}${job.workType ? `<span>${escapeHtml(job.workType)}</span>` : ""}<span>◷ ${formatDate(job.createdAt)}</span></div><div class="card-actions"><button data-action="edit" type="button">Edit</button>${job.url ? `<a href="${escapeHtml(job.url)}" target="_blank">Open</a>` : ""}<button class="delete" data-action="delete" type="button">Delete</button></div></article>`;
 }
 
+function openModal(id) {
+  const job = jobs.find((item) => item.id === id);
+  if (!job) return;
+  const form = $("#modal-form");
+  $("#modal-company").textContent = job.company || "Company not specified";
+  $("#modal-title").textContent = job.title || "Edit application";
+  $("#modal-subtitle").textContent = `${job.location || "Location not specified"} · ${job.workType || "Work arrangement not specified"}`;
+  ["title", "company", "location", "workType", "salary", "description", "notes"].forEach((field) => {
+    if (form.elements[field]) form.elements[field].value = job[field] || "";
+  });
+  form.elements.status.value = job.status || "applied";
+  $("#modal-timeline").innerHTML = `<p>Created ${formatDate(job.createdAt)}</p>${job.updatedAt ? `<p>Last updated ${formatDate(job.updatedAt)}</p>` : ""}`;
+  $("#job-modal").classList.remove("hidden");
+  document.body.classList.add("modal-open");
+  form.dataset.id = id;
+  switchTab("details");
+}
+
+function closeModal() {
+  $("#job-modal").classList.add("hidden");
+  document.body.classList.remove("modal-open");
+}
+
+function switchTab(tab) {
+  document.querySelectorAll("[data-tab]").forEach((button) => button.classList.toggle("active", button.dataset.tab === tab));
+  document.querySelectorAll("[data-panel]").forEach((panel) => panel.classList.toggle("active", panel.dataset.panel === tab));
+}
+
 function showFeedback(message) {
   $("#feedback").textContent = message;
   $("#feedback").classList.add("visible");
@@ -178,14 +206,12 @@ $("#board").addEventListener("dragend", () => {
 $("#board").addEventListener("click", async (event) => {
   const action = event.target.dataset.action;
   const card = event.target.closest(".job-card");
-  if (!action || !card) return;
+  if (action === "close-modal") return closeModal();
+  if (!card) return;
   const id = card.dataset.id;
   const job = jobs.find((item) => item.id === id);
   if (action === "edit") {
-    window.open(
-      chrome.runtime.getURL(`edit.html?id=${encodeURIComponent(id)}`),
-      "_blank",
-    );
+    openModal(id);
     return;
   }
   if (action === "delete") {
@@ -194,6 +220,28 @@ $("#board").addEventListener("click", async (event) => {
     renderBoard();
     showFeedback("Application deleted.");
   }
+});
+
+$("#board").addEventListener("click", (event) => {
+  const card = event.target.closest(".job-card");
+  if (card && !event.target.closest("button, a")) openModal(card.dataset.id);
+});
+$("#job-modal").addEventListener("click", (event) => {
+  if (event.target.dataset.action === "close-modal") closeModal();
+});
+document.querySelectorAll("[data-tab]").forEach((button) => button.addEventListener("click", () => switchTab(button.dataset.tab)));
+$("#modal-form").addEventListener("submit", async (event) => {
+  event.preventDefault();
+  const job = jobs.find((item) => item.id === event.currentTarget.dataset.id);
+  if (!job) return;
+  Object.assign(job, Object.fromEntries(new FormData(event.currentTarget).entries()), { updatedAt: new Date().toISOString() });
+  await chrome.storage.local.set({ jobs });
+  renderBoard();
+  closeModal();
+  showFeedback("Changes saved.");
+});
+document.addEventListener("keydown", (event) => {
+  if (event.key === "Escape") closeModal();
 });
 
 chrome.storage.onChanged.addListener((changes, area) => {
