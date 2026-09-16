@@ -301,21 +301,32 @@
     if (!location.pathname.startsWith("/jobs/")) return;
     const existingButton = document.getElementById(buttonId);
     if (existingButton) {
-      positionSaveButton(existingButton);
       return;
     }
-    const button = document.createElement("button");
-    button.id = buttonId;
-    button.type = "button";
-    button.title = "Save job";
-    button.setAttribute("aria-label", "Save job");
-    button.innerHTML =
-      '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v11m0 0 4-4m-4 4-4-4M5 17v2a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-2"/></svg>';
-    Object.assign(button.style, {
+    const launcher = document.createElement("button");
+    launcher.id = buttonId;
+    launcher.type = "button";
+    launcher.title = "Job Tracker";
+    launcher.setAttribute("aria-label", "Open Job Tracker");
+    launcher.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v11m0 0 4-4m-4 4-4-4M5 17v2a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-2"/></svg>';
+    const panel = document.createElement("div");
+    panel.id = "job-tracker-menu";
+    panel.innerHTML = '<button type="button" data-action="applications"><span class="menu-icon">▦</span>Applications</button><button type="button" data-action="save"><span class="menu-icon">↓</span>Save this job</button>';
+    const shell = document.createElement("div");
+    shell.id = "job-tracker-floating-shell";
+    shell.append(launcher, panel);
+    Object.assign(shell.style, {
       position: "fixed",
-      right: "22px",
-      bottom: "24px",
+      right: "24px",
+      top: "50%",
+      transform: "translateY(-50%)",
       zIndex: "2147483647",
+      display: "grid",
+      gap: "10px",
+      justifyItems: "end",
+      fontFamily: "Arial, sans-serif",
+    });
+    Object.assign(launcher.style, {
       display: "grid",
       placeItems: "center",
       width: "46px",
@@ -328,7 +339,36 @@
       boxShadow: "0 8px 24px rgba(23,33,27,.18)",
       cursor: "pointer",
     });
-    const icon = button.querySelector("svg");
+    Object.assign(panel.style, {
+      display: "grid",
+      gap: "8px",
+      padding: "10px",
+      border: "1px solid #dce4de",
+      borderRadius: "14px",
+      background: "#ffffff",
+      boxShadow: "0 12px 30px rgba(23,33,27,.18)",
+      opacity: "0",
+      visibility: "hidden",
+      transform: "translateX(10px)",
+      transition: "opacity .18s ease, transform .18s ease, visibility .18s ease",
+      pointerEvents: "none",
+    });
+    const menuButtons = panel.querySelectorAll("button");
+    menuButtons.forEach((menuButton) => Object.assign(menuButton.style, {
+      display: "flex",
+      alignItems: "center",
+      gap: "9px",
+      minWidth: "166px",
+      padding: "10px 12px",
+      border: "0",
+      borderRadius: "9px",
+      color: "#173b2b",
+      background: "#f3f8f1",
+      font: "600 13px Arial, sans-serif",
+      textAlign: "left",
+      cursor: "pointer",
+    }));
+    const icon = launcher.querySelector("svg");
     Object.assign(icon.style, {
       width: "21px",
       height: "21px",
@@ -338,7 +378,24 @@
       strokeLinecap: "round",
       strokeLinejoin: "round",
     });
-    button.addEventListener("click", async () => {
+    const showMenu = () => {
+      panel.style.opacity = "1";
+      panel.style.visibility = "visible";
+      panel.style.transform = "translateX(0)";
+      panel.style.pointerEvents = "auto";
+    };
+    const hideMenu = () => {
+      panel.style.opacity = "0";
+      panel.style.visibility = "hidden";
+      panel.style.transform = "translateX(10px)";
+      panel.style.pointerEvents = "none";
+    };
+    shell.addEventListener("mouseenter", showMenu);
+    shell.addEventListener("mouseleave", hideMenu);
+    panel.querySelector('[data-action="applications"]').addEventListener("click", () => {
+      window.open(chrome.runtime.getURL("popup.html"), "_blank");
+    });
+    panel.querySelector('[data-action="save"]').addEventListener("click", async () => {
       const job = {
         ...(await collectAfterExpanding()),
         id: crypto.randomUUID(),
@@ -347,47 +404,18 @@
       };
       const data = await chrome.storage.local.get({ jobs: [] });
       await chrome.storage.local.set({ jobs: [job, ...data.jobs] });
-      button.title = "Saved";
-      button.setAttribute("aria-label", "Saved");
-      button.style.background = "#dce4de";
+      launcher.title = "Saved";
+      launcher.setAttribute("aria-label", "Saved");
+      launcher.style.background = "#dce4de";
+      panel.querySelector('[data-action="save"]').textContent = "Saved";
     });
-    document.body.appendChild(button);
-    positionSaveButton(button);
-  }
-
-  function positionSaveButton(button) {
-    const saveButton = [...document.querySelectorAll("button, a")].find(
-      (element) =>
-        /^(speichern|save|saved)$/i.test(
-          (element.innerText || element.textContent || "").trim(),
-        ),
-    );
-    button.style.position = "fixed";
-    button.style.right = "auto";
-    button.style.bottom = "auto";
-    if (!saveButton || saveButton === button) {
-      button.style.left = "auto";
-      button.style.right = "22px";
-      button.style.bottom = "24px";
-      return;
-    }
-    const bounds = saveButton.getBoundingClientRect();
-    button.style.left = `${Math.round(bounds.right + 10)}px`;
-    button.style.top = `${Math.round(bounds.top + (bounds.height - 46) / 2)}px`;
+    document.body.appendChild(shell);
   }
 
   addFloatingButton();
   new MutationObserver(addFloatingButton).observe(document.body, {
     childList: true,
     subtree: true,
-  });
-  window.addEventListener("scroll", () => {
-    const button = document.getElementById(buttonId);
-    if (button) positionSaveButton(button);
-  });
-  window.addEventListener("resize", () => {
-    const button = document.getElementById(buttonId);
-    if (button) positionSaveButton(button);
   });
   chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
     if (message.type === "GET_JOB_DATA") {
