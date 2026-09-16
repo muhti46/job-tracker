@@ -4,7 +4,7 @@
   "version": "0.1.0",
   "description": "Save LinkedIn jobs and track your applications.",
   "permissions": ["storage", "activeTab"],
-  "host_permissions": ["https://www.linkedin.com/*"],
+  "host_permissions": ["https://www.linkedin.com/*", "https://*.linkedin.com/*"],
   "action": {
     "default_title": "Job Tracker",
     "default_popup": "popup.html",
@@ -17,7 +17,10 @@
   },
   "content_scripts": [
     {
-      "matches": ["https://www.linkedin.com/jobs/*"],
+      "matches": [
+        "https://www.linkedin.com/jobs/*",
+        "https://*.linkedin.com/jobs/*"
+      ],
       "js": ["content.js"],
       "run_at": "document_idle"
     }
