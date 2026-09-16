@@ -298,8 +298,7 @@
   }
 
   function addFloatingButton() {
-    if (!location.pathname.startsWith("/jobs/"))
-      return;
+    if (!location.pathname.startsWith("/jobs/")) return;
     const existingButton = document.getElementById(buttonId);
     if (existingButton) {
       positionSaveButton(existingButton);
@@ -310,7 +309,8 @@
     button.type = "button";
     button.title = "Save job";
     button.setAttribute("aria-label", "Save job");
-    button.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v11m0 0 4-4m-4 4-4-4M5 17v2a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-2"/></svg>';
+    button.innerHTML =
+      '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v11m0 0 4-4m-4 4-4-4M5 17v2a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-2"/></svg>';
     Object.assign(button.style, {
       position: "fixed",
       right: "22px",
@@ -329,7 +329,15 @@
       cursor: "pointer",
     });
     const icon = button.querySelector("svg");
-    Object.assign(icon.style, { width: "21px", height: "21px", fill: "none", stroke: "currentColor", strokeWidth: "1.8", strokeLinecap: "round", strokeLinejoin: "round" });
+    Object.assign(icon.style, {
+      width: "21px",
+      height: "21px",
+      fill: "none",
+      stroke: "currentColor",
+      strokeWidth: "1.8",
+      strokeLinecap: "round",
+      strokeLinejoin: "round",
+    });
     button.addEventListener("click", async () => {
       const job = {
         ...(await collectAfterExpanding()),
@@ -348,22 +356,38 @@
   }
 
   function positionSaveButton(button) {
-    const saveButton = [...document.querySelectorAll("button, a")].find((element) =>
-      /^(speichern|save|saved)$/i.test((element.innerText || element.textContent || "").trim()),
+    const saveButton = [...document.querySelectorAll("button, a")].find(
+      (element) =>
+        /^(speichern|save|saved)$/i.test(
+          (element.innerText || element.textContent || "").trim(),
+        ),
     );
-    if (!saveButton || saveButton === button) return;
-    button.style.position = "relative";
+    button.style.position = "fixed";
     button.style.right = "auto";
     button.style.bottom = "auto";
-    button.style.marginLeft = "10px";
-    button.style.verticalAlign = "middle";
-    saveButton.insertAdjacentElement("afterend", button);
+    if (!saveButton || saveButton === button) {
+      button.style.left = "auto";
+      button.style.right = "22px";
+      button.style.bottom = "24px";
+      return;
+    }
+    const bounds = saveButton.getBoundingClientRect();
+    button.style.left = `${Math.round(bounds.right + 10)}px`;
+    button.style.top = `${Math.round(bounds.top + (bounds.height - 46) / 2)}px`;
   }
 
   addFloatingButton();
   new MutationObserver(addFloatingButton).observe(document.body, {
     childList: true,
     subtree: true,
+  });
+  window.addEventListener("scroll", () => {
+    const button = document.getElementById(buttonId);
+    if (button) positionSaveButton(button);
+  });
+  window.addEventListener("resize", () => {
+    const button = document.getElementById(buttonId);
+    if (button) positionSaveButton(button);
   });
   chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
     if (message.type === "GET_JOB_DATA") {
