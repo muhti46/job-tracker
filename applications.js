@@ -138,7 +138,11 @@ function renderBoard() {
     .map((column) => {
       const columnJobs = visibleJobs.filter(
         (job) => (job.status || "applied") === column.status,
-      );
+      ).sort((first, second) => {
+        const firstOrder = Number.isFinite(first.order) ? first.order : Number.MAX_SAFE_INTEGER;
+        const secondOrder = Number.isFinite(second.order) ? second.order : Number.MAX_SAFE_INTEGER;
+        return firstOrder - secondOrder;
+      });
       return `<section class="column ${column.className}" data-status="${column.status}"><header class="column-head" draggable="true" data-column-status="${column.status}"><div class="column-title"><span class="column-icon">${columnIcons[column.status]}</span><h2>${column.label}</h2><span class="column-count">${columnJobs.length}</span></div><div class="column-tools"><button type="button" aria-label="Column settings">⚙</button><span class="drag-handle" aria-label="Drag column">⠿</span></div></header><div class="cards">${columnJobs.length ? columnJobs.map(renderCard).join("") : '<p class="empty-column">No applications here</p>'}</div></section>`;
     })
     .join("");
@@ -259,6 +263,15 @@ function syncColumnOrderFromDom() {
   );
 }
 
+function syncJobOrderFromDom(status) {
+  const column = document.querySelector(`.column[data-status="${status}"]`);
+  if (!column) return;
+  [...column.querySelectorAll(".job-card")].forEach((card, index) => {
+    const job = jobs.find((item) => item.id === card.dataset.id);
+    if (job) job.order = index;
+  });
+}
+
 $("#search-input").addEventListener("input", renderBoard);
 $("#sort-select").addEventListener("change", renderBoard);
 $("#board").addEventListener("dragstart", (event) => {
@@ -301,8 +314,12 @@ $("#board").addEventListener("dragover", (event) => {
   if (draggedCardId) {
     const draggedCard = document.querySelector(`.job-card[data-id="${draggedCardId}"]`);
     const cards = column.querySelector(".cards");
-    if (draggedCard && cards && !cards.contains(draggedCard)) {
-      cards.appendChild(draggedCard);
+    if (draggedCard && cards) {
+      const targetCards = [...cards.querySelectorAll(".job-card")].filter((card) => card !== draggedCard);
+      const beforeCard = targetCards.find((card) => event.clientY < card.getBoundingClientRect().top + card.getBoundingClientRect().height / 2);
+      if (beforeCard) cards.insertBefore(draggedCard, beforeCard);
+      else cards.appendChild(draggedCard);
+      cards.querySelector(".empty-column")?.remove();
       const job = jobs.find((item) => item.id === draggedCardId);
       if (job) job.status = column.dataset.status;
     }
@@ -341,6 +358,10 @@ $("#board").addEventListener("drop", async (event) => {
           at: job.updatedAt,
         });
       }
+      syncJobOrderFromDom(job.status);
+      if (draggedCardOriginalStatus && draggedCardOriginalStatus !== job.status) {
+        syncJobOrderFromDom(draggedCardOriginalStatus);
+      }
       await chrome.storage.local.set({ jobs });
       showFeedback(
         `Moved to ${columns.find((column) => column.status === job.status).label}.`,
@@ -361,6 +382,11 @@ $("#board").addEventListener("drop", async (event) => {
   }
 });
 $("#board").addEventListener("dragend", async () => {
+  if (draggedCardId) {
+    const job = jobs.find((item) => item.id === draggedCardId);
+    if (job) job.status = draggedCardOriginalStatus || job.status;
+    renderBoard();
+  }
   if (draggedColumnStatus) {
     syncColumnOrderFromDom();
     await chrome.storage.local.set({ columnOrder });
