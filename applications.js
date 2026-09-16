@@ -18,6 +18,7 @@ let jobs = [];
 let columnOrder = columns.map((column) => column.status);
 let draggedCardId = "";
 let draggedColumnStatus = "";
+let draggedCardOriginalStatus = "";
 const $ = (selector) => document.querySelector(selector);
 const escapeHtml = (value = "") =>
   String(value).replace(
@@ -265,6 +266,7 @@ $("#board").addEventListener("dragstart", (event) => {
   const columnHead = event.target.closest("[data-column-status]");
   if (card) {
     draggedCardId = card.dataset.id;
+    draggedCardOriginalStatus = jobs.find((job) => job.id === draggedCardId)?.status || "applied";
     card.classList.add("is-dragging");
     event.dataTransfer.effectAllowed = "move";
     event.dataTransfer.setData("text/plain", `card:${draggedCardId}`);
@@ -295,6 +297,17 @@ $("#board").addEventListener("dragover", (event) => {
     }
     return;
   }
+  if (draggedCardId) {
+    const draggedCard = document.querySelector(`.job-card[data-id="${draggedCardId}"]`);
+    const cards = column.querySelector(".cards");
+    if (draggedCard && cards && !cards.contains(draggedCard)) {
+      cards.appendChild(draggedCard);
+      const job = jobs.find((item) => item.id === draggedCardId);
+      if (job) job.status = column.dataset.status;
+    }
+    column.classList.add("drag-over");
+    return;
+  }
   column.classList.add("drag-over");
 });
 $("#board").addEventListener("dragleave", (event) => {
@@ -312,23 +325,24 @@ $("#board").addEventListener("drop", async (event) => {
   const targetStatus = targetColumn.dataset.status;
   if (draggedCardId) {
     const job = jobs.find((item) => item.id === draggedCardId);
-    if (job && job.status !== targetStatus) {
-      const previousStatus = job.status;
+    if (job) {
       ensureHistory(job);
-      job.status = targetStatus;
-      job.updatedAt = new Date().toISOString();
-      job.history.push({
-        type: "moved",
-        from: previousStatus,
-        status: targetStatus,
-        at: job.updatedAt,
-      });
+      if (draggedCardOriginalStatus !== job.status) {
+        job.updatedAt = new Date().toISOString();
+        job.history.push({
+          type: "moved",
+          from: draggedCardOriginalStatus,
+          status: job.status,
+          at: job.updatedAt,
+        });
+      }
       await chrome.storage.local.set({ jobs });
       showFeedback(
-        `Moved to ${columns.find((column) => column.status === targetStatus).label}.`,
+        `Moved to ${columns.find((column) => column.status === job.status).label}.`,
       );
     }
     draggedCardId = "";
+    draggedCardOriginalStatus = "";
     renderBoard();
     return;
   }
@@ -347,6 +361,7 @@ $("#board").addEventListener("dragend", async () => {
     await chrome.storage.local.set({ columnOrder });
   }
   draggedCardId = "";
+  draggedCardOriginalStatus = "";
   draggedColumnStatus = "";
   document
     .querySelectorAll(".drag-over, .is-dragging")
