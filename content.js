@@ -317,7 +317,7 @@
     shell.append(launcher, panel);
     Object.assign(shell.style, {
       position: "fixed",
-      right: "24px",
+      right: "12px",
       top: "50%",
       transform: "translateY(-50%)",
       zIndex: "2147483647",
@@ -392,6 +392,53 @@
     };
     shell.addEventListener("mouseenter", showMenu);
     shell.addEventListener("mouseleave", hideMenu);
+    let dragging = false;
+    let moved = false;
+    let offsetX = 0;
+    let offsetY = 0;
+    launcher.style.touchAction = "none";
+    launcher.style.cursor = "grab";
+    launcher.addEventListener("pointerdown", (event) => {
+      dragging = true;
+      moved = false;
+      const bounds = shell.getBoundingClientRect();
+      offsetX = event.clientX - bounds.left;
+      offsetY = event.clientY - bounds.top;
+      launcher.setPointerCapture(event.pointerId);
+      launcher.style.cursor = "grabbing";
+      event.preventDefault();
+    });
+    launcher.addEventListener("pointermove", (event) => {
+      if (!dragging) return;
+      moved = true;
+      const maxX = window.innerWidth - shell.offsetWidth - 8;
+      const maxY = window.innerHeight - shell.offsetHeight - 8;
+      const left = Math.min(Math.max(8, event.clientX - offsetX), maxX);
+      const top = Math.min(Math.max(8, event.clientY - offsetY), maxY);
+      shell.style.left = `${left}px`;
+      shell.style.top = `${top}px`;
+      shell.style.right = "auto";
+      shell.style.transform = "none";
+    });
+    launcher.addEventListener("pointerup", async (event) => {
+      if (!dragging) return;
+      dragging = false;
+      launcher.releasePointerCapture(event.pointerId);
+      launcher.style.cursor = "grab";
+      if (moved) {
+        const bounds = shell.getBoundingClientRect();
+        await chrome.storage.local.set({ floatingPosition: { left: bounds.left, top: bounds.top } });
+      }
+    });
+    chrome.storage.local.get({ floatingPosition: null }).then(({ floatingPosition }) => {
+      if (!floatingPosition) return;
+      const left = Math.min(Math.max(8, floatingPosition.left), window.innerWidth - shell.offsetWidth - 8);
+      const top = Math.min(Math.max(8, floatingPosition.top), window.innerHeight - shell.offsetHeight - 8);
+      shell.style.left = `${left}px`;
+      shell.style.top = `${top}px`;
+      shell.style.right = "auto";
+      shell.style.transform = "none";
+    });
     panel.querySelector('[data-action="applications"]').addEventListener("click", () => {
       chrome.runtime.sendMessage({ type: "OPEN_APPLICATIONS" });
     });
