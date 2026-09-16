@@ -111,6 +111,22 @@
     );
   }
 
+  function locationNearTitle() {
+    const titleElement = document.querySelector("h1");
+    if (!titleElement) return "";
+    let ancestor = titleElement.parentElement;
+    for (let level = 0; ancestor && level < 5; level += 1) {
+      const parts = (ancestor.innerText || "")
+        .split(/[\n·•|]/)
+        .map((part) => part.trim())
+        .filter(Boolean);
+      const location = topCardLocation(parts.join("\n"));
+      if (location) return location;
+      ancestor = ancestor.parentElement;
+    }
+    return "";
+  }
+
   function pageText() {
     return document.body?.innerText?.trim() || "";
   }
@@ -157,6 +173,8 @@
       metaContent("og:title") ||
       document.title.replace(/\s*\|.*$/, "").trim();
     const topCardText = firstText([
+      ".job-details-jobs-unified-top-card",
+      ".jobs-unified-top-card",
       ".job-details-jobs-unified-top-card__primary-description-container",
       ".jobs-unified-top-card__primary-description-container",
       ".job-details-jobs-unified-top-card__primary-description",
@@ -201,6 +219,7 @@
       locationFromSchema?.address?.addressRegion ||
       locationFromSchema?.address?.name ||
       topCardLocation(topCardText) ||
+      locationNearTitle() ||
       "";
     const description =
       textNearHeading(
