@@ -19,6 +19,7 @@ let columnOrder = columns.map((column) => column.status);
 let draggedCardId = "";
 let draggedColumnStatus = "";
 let draggedCardOriginalStatus = "";
+let draggedPlaceholder = null;
 const $ = (selector) => document.querySelector(selector);
 const escapeHtml = (value = "") =>
   String(value).replace(
@@ -282,6 +283,11 @@ $("#board").addEventListener("dragstart", (event) => {
     draggedCardId = card.dataset.id;
     draggedCardOriginalStatus = jobs.find((job) => job.id === draggedCardId)?.status || "applied";
     card.classList.add("is-dragging");
+    draggedPlaceholder = document.createElement("div");
+    draggedPlaceholder.className = "drop-placeholder";
+    draggedPlaceholder.style.height = `${card.getBoundingClientRect().height}px`;
+    card.after(draggedPlaceholder);
+    card.style.visibility = "hidden";
     event.dataTransfer.effectAllowed = "move";
     event.dataTransfer.setData("text/plain", `card:${draggedCardId}`);
   } else if (columnHead) {
@@ -300,12 +306,12 @@ $("#board").addEventListener("dragover", (event) => {
     const draggedCard = document.querySelector(`.job-card[data-id="${draggedCardId}"]`);
     const cards = column.querySelector(".cards");
     const job = jobs.find((item) => item.id === draggedCardId);
-    if (draggedCard && cards && job) {
+    if (draggedPlaceholder && cards && job) {
       const previousColumn = document.querySelector(`.column[data-status="${job.status}"]`);
       const targetCards = [...cards.querySelectorAll(".job-card")].filter((card) => card !== draggedCard);
       const beforeCard = targetCards.find((card) => event.clientY < card.getBoundingClientRect().top + card.getBoundingClientRect().height / 2);
-      if (beforeCard) cards.insertBefore(draggedCard, beforeCard);
-      else cards.appendChild(draggedCard);
+      if (beforeCard) cards.insertBefore(draggedPlaceholder, beforeCard);
+      else cards.appendChild(draggedPlaceholder);
       cards.querySelector(".empty-column")?.remove();
       if (job.status !== column.dataset.status) {
         job.status = column.dataset.status;
@@ -355,6 +361,12 @@ $("#board").addEventListener("drop", async (event) => {
   const targetStatus = targetColumn.dataset.status;
   if (draggedCardId) {
     const job = jobs.find((item) => item.id === draggedCardId);
+    const draggedCard = document.querySelector(`.job-card[data-id="${draggedCardId}"]`);
+    if (draggedPlaceholder && draggedCard) {
+      draggedPlaceholder.replaceWith(draggedCard);
+      draggedCard.style.visibility = "";
+      draggedCard.classList.remove("is-dragging");
+    }
     if (job) {
       ensureHistory(job);
       if (draggedCardOriginalStatus !== job.status) {
@@ -377,6 +389,7 @@ $("#board").addEventListener("drop", async (event) => {
     }
     draggedCardId = "";
     draggedCardOriginalStatus = "";
+    draggedPlaceholder = null;
     renderBoard();
     return;
   }
@@ -392,6 +405,12 @@ $("#board").addEventListener("drop", async (event) => {
 $("#board").addEventListener("dragend", async () => {
   if (draggedCardId) {
     const job = jobs.find((item) => item.id === draggedCardId);
+    const draggedCard = document.querySelector(`.job-card[data-id="${draggedCardId}"]`);
+    draggedPlaceholder?.remove();
+    if (draggedCard) {
+      draggedCard.style.visibility = "";
+      draggedCard.classList.remove("is-dragging");
+    }
     if (job) job.status = draggedCardOriginalStatus || job.status;
     renderBoard();
   }
@@ -402,6 +421,7 @@ $("#board").addEventListener("dragend", async () => {
   draggedCardId = "";
   draggedCardOriginalStatus = "";
   draggedColumnStatus = "";
+  draggedPlaceholder = null;
   document
     .querySelectorAll(".drag-over, .is-dragging")
     .forEach((element) => element.classList.remove("drag-over", "is-dragging"));
