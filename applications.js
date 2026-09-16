@@ -35,9 +35,9 @@ const escapeHtml = (value = "") =>
 async function loadJobs() {
   const data = await chrome.storage.local.get({ jobs: [] });
   jobs = data.jobs.map((job) =>
-    job.status === "saved" ? { ...job, status: "applied" } : job,
+    ensureHistory(job.status === "saved" ? { ...job, status: "applied" } : job),
   );
-  if (jobs.some((job, index) => job.status !== data.jobs[index]?.status)) {
+  if (jobs.some((job, index) => job.status !== data.jobs[index]?.status || !data.jobs[index]?.history)) {
     await chrome.storage.local.set({ jobs });
   }
   const savedOrder = await chrome.storage.local.get({
@@ -76,6 +76,29 @@ function formatDate(value) {
     day: "numeric",
     year: "numeric",
   }).format(new Date(value));
+}
+
+function statusLabel(status) {
+  return columns.find((column) => column.status === status)?.label || status;
+}
+
+function relativeTime(value) {
+  const days = Math.max(0, Math.floor((Date.now() - new Date(value).getTime()) / 86400000));
+  return days === 0 ? "today" : `${days} day${days === 1 ? "" : "s"} ago`;
+}
+
+function ensureHistory(job) {
+  if (!job.history?.length) {
+    job.history = [{ type: "created", status: job.status || "applied", at: job.createdAt || new Date().toISOString() }];
+  }
+  return job;
+}
+
+function renderTimeline(job) {
+  const events = (job.history || []).slice().sort((first, second) => new Date(second.at) - new Date(first.at));
+  $("#modal-timeline").innerHTML = events.length
+    ? `<div class="timeline-list">${events.map((event) => `<div class="timeline-event"><span class="timeline-dot"></span><div><strong>${event.type === "created" ? "Created in" : "Moved to"} <em class="status-${escapeHtml(event.status)}">${escapeHtml(statusLabel(event.status))}</em></strong><small>${relativeTime(event.at)}</small></div></div>`).join("")}</div>`
+    : '<p class="timeline-empty">No timeline events yet.</p>';
 }
 
 function renderBoard() {
@@ -118,8 +141,7 @@ function openModal(id) {
     if (form.elements[field]) form.elements[field].value = job[field] || "";
   });
   form.elements.status.value = job.status || "applied";
-  $("#modal-timeline").innerHTML =
-    `<p>Created ${formatDate(job.createdAt)}</p>${job.updatedAt ? `<p>Last updated ${formatDate(job.updatedAt)}</p>` : ""}`;
+  renderTimeline(job);
   renderContacts(job);
   $("#contact-form").classList.add("hidden");
   $("#job-modal").classList.remove("hidden");
@@ -143,12 +165,22 @@ function renderContacts(job) {
 function findContactDefaults(job) {
   const source = `${job.description || ""} ${job.notes || ""}`;
   return {
-    name: (source.match(/(?:contact|ansprechpartner(?:in)?)\s*[:\-]?\s*([A-Z][a-z]+(?:\s+[A-Z][a-z]+){1,2})/i) || ["", ""])[1],
-    position: /recruiter/i.test(source) ? "Recruiter" : /hiring manager/i.test(source) ? "Hiring Manager" : "",
+    name: (source.match(
+      /(?:contact|ansprechpartner(?:in)?)\s*[:\-]?\s*([A-Z][a-z]+(?:\s+[A-Z][a-z]+){1,2})/i,
+    ) || ["", ""])[1],
+    position: /recruiter/i.test(source)
+      ? "Recruiter"
+      : /hiring manager/i.test(source)
+        ? "Hiring Manager"
+        : "",
     company: job.company || "",
     email: (source.match(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/i) || [""])[0],
-    phone: (source.match(/(?:\+\d{1,3}[\s.-]?)?(?:\(?\d{2,4}\)?[\s.-]?)?\d{3,4}[\s.-]\d{3,4}/) || [""])[0],
-    linkedin: (source.match(/https?:\/\/(?:www\.)?linkedin\.com\/[^\s)]+/i) || [""])[0],
+    phone: (source.match(
+      /(?:\+\d{1,3}[\s.-]?)?(?:\(?\d{2,4}\)?[\s.-]?)?\d{3,4}[\s.-]\d{3,4}/,
+    ) || [""])[0],
+    linkedin: (source.match(/https?:\/\/(?:www\.)?linkedin\.com\/[^\s)]+/i) || [
+      "",
+    ])[0],
     job: job.title || "",
     notes: "",
   };
@@ -233,8 +265,11 @@ $("#board").addEventListener("drop", async (event) => {
   if (draggedCardId) {
     const job = jobs.find((item) => item.id === draggedCardId);
     if (job && job.status !== targetStatus) {
+      const previousStatus = job.status;
+      ensureHistory(job);
       job.status = targetStatus;
       job.updatedAt = new Date().toISOString();
+      job.history.push({ type: "moved", from: previousStatus, status: targetStatus, at: job.updatedAt });
       await chrome.storage.local.set({ jobs });
       showFeedback(
         `Moved to ${columns.find((column) => column.status === targetStatus).label}.`,
@@ -300,11 +335,16 @@ $("#modal-form").addEventListener("submit", async (event) => {
   event.preventDefault();
   const job = jobs.find((item) => item.id === event.currentTarget.dataset.id);
   if (!job) return;
+  const previousStatus = job.status;
   Object.assign(
     job,
     Object.fromEntries(new FormData(event.currentTarget).entries()),
     { updatedAt: new Date().toISOString() },
   );
+  if (previousStatus !== job.status) {
+    ensureHistory(job);
+    job.history.push({ type: "moved", status: job.status, at: job.updatedAt });
+  }
   await chrome.storage.local.set({ jobs });
   renderBoard();
   closeModal();
@@ -350,13 +390,16 @@ $("#contacts-list").addEventListener("click", async (event) => {
   showFeedback("Contact removed.");
 });
 $("#contact-modal").addEventListener("click", (event) => {
-  if (event.target.dataset.action === "close-contact-modal") closeContactModal();
+  if (event.target.dataset.action === "close-contact-modal")
+    closeContactModal();
 });
 $("#contact-modal-form").addEventListener("submit", async (event) => {
   event.preventDefault();
   const job = jobs.find((item) => item.id === $("#modal-form").dataset.id);
   if (!job) return;
-  const values = Object.fromEntries(new FormData(event.currentTarget).entries());
+  const values = Object.fromEntries(
+    new FormData(event.currentTarget).entries(),
+  );
   if (!values.name.trim()) return showFeedback("Add a contact name first.");
   job.contacts = [...(job.contacts || []), values];
   await chrome.storage.local.set({ jobs });
