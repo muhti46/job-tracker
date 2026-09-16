@@ -81,23 +81,33 @@
       !/remote|hybrid|on-site|onsite|full-time|part-time|notification|benachrichtig|bewerben|kandidat|candidate|mbi gmbh/i.test(
         value,
       );
-    const candidateFromElements = candidates
-      .map((element) => (element.innerText || element.textContent || "").trim())
-      .find((value) => value && isLocation(value)) || "";
+    const candidateFromElements =
+      candidates
+        .map((element) =>
+          (element.innerText || element.textContent || "").trim(),
+        )
+        .find((value) => value && isLocation(value)) || "";
     if (candidateFromElements) return candidateFromElements;
+    return "";
+  }
+
+  function topCardLocation(value) {
+    const parts = value
+      .split(/[\n·•|]/)
+      .map((part) => part.trim())
+      .filter(Boolean);
     return (
-      pageText()
-        .split(/[\n·•|]/)
-        .map((value) => value.trim())
-        .find(
-          (value) =>
-            value &&
-            value.length < 100 &&
-            /,/.test(value) &&
-            !/remote|hybrid|on-site|onsite|full-time|part-time|notification|benachrichtig|bewerben|kandidat|candidate|mbi gmbh/i.test(
-              value,
-            ),
-        ) || ""
+      parts.find(
+        (part) =>
+          part.length < 80 &&
+          (/,/.test(part) ||
+            /^(deutschland|germany|österreich|austria|schweiz|switzerland)$/i.test(
+              part,
+            )) &&
+          !/remote|hybrid|on-site|onsite|full-time|part-time|notification|benachrichtig|bewerben|kandidat|candidate|vor \d|bewerber/i.test(
+            part,
+          ),
+      ) || ""
     );
   }
 
@@ -169,13 +179,17 @@
     const locationFromSchema = Array.isArray(structuredLocation)
       ? structuredLocation[0]
       : structuredLocation;
+    const schemaAddress = locationFromSchema?.address;
     const jobLocation =
+      schemaAddress?.addressLocality ||
+      schemaAddress?.addressRegion ||
+      schemaAddress?.addressCountry?.name ||
       firstMatchingText(
         [
-        ".job-details-jobs-unified-top-card__bullet",
-        ".jobs-unified-top-card__bullet",
-        ".topcard__flavor--bullet",
-        '[class*="top-card"][class*="bullet"]',
+          ".job-details-jobs-unified-top-card__bullet",
+          ".jobs-unified-top-card__bullet",
+          ".topcard__flavor--bullet",
+          '[class*="top-card"][class*="bullet"]',
         ],
         (value) =>
           /,/.test(value) &&
@@ -186,12 +200,7 @@
       locationFromSchema?.address?.addressLocality ||
       locationFromSchema?.address?.addressRegion ||
       locationFromSchema?.address?.name ||
-      topCardText
-        .split(/\s*[·•]\s*/)
-        .find((part) => /,|remote|hybrid|on-site|onsite/i.test(part)) ||
-      "" ||
-      locationCandidate() ||
-      locationCandidate() ||
+      topCardLocation(topCardText) ||
       "";
     const description =
       textNearHeading(
