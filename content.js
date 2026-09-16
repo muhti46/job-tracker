@@ -127,6 +127,17 @@
     return "";
   }
 
+  function countryLocation() {
+    const countries = /^(deutschland|germany|österreich|austria|schweiz|switzerland|france|frankreich|netherlands|niederlande)$/i;
+    for (const element of document.querySelectorAll("body *")) {
+      const value = (element.innerText || element.textContent || "")
+        .replace(/\s+/g, " ")
+        .trim();
+      if (countries.test(value) && element.children.length === 0) return value;
+    }
+    return "";
+  }
+
   function pageText() {
     return document.body?.innerText?.trim() || "";
   }
@@ -220,6 +231,7 @@
       locationFromSchema?.address?.name ||
       topCardLocation(topCardText) ||
       locationNearTitle() ||
+      countryLocation() ||
       "";
     const description =
       textNearHeading(
