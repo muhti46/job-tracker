@@ -5,6 +5,13 @@ const columns = [
   { status: "offer", label: "Offer", className: "offer" },
   { status: "rejected", label: "Rejected", className: "rejected" },
 ];
+const columnIcons = {
+  saved: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3h9l3 3v15H6zM9 3v6h6V3M9 17h6"/></svg>',
+  applied: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4h10l4 4v12H5zM9 4v5h6V4M8 15h8M8 18h5"/></svg>',
+  interview: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 5a9 9 0 0 0 12 12l2 2M7 5l-3 3m3-3-3-3M17 19l3-3m-3 3 3 3"/></svg>',
+  offer: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 4h12v16H6zM9 4v5h6V4M9 13h6M9 17h4"/></svg>',
+  rejected: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 4h12v16H6zM9 8l6 6m0-6-6 6"/></svg>',
+};
 let jobs = [];
 let columnOrder = columns.map((column) => column.status);
 let draggedCardId = "";
@@ -71,7 +78,7 @@ function renderBoard() {
       const columnJobs = visibleJobs.filter(
         (job) => (job.status || "saved") === column.status,
       );
-      return `<section class="column ${column.className}" data-status="${column.status}"><header class="column-head" draggable="true" data-column-status="${column.status}"><h2>${column.label}</h2><span class="column-count">${columnJobs.length}</span></header><div class="cards">${columnJobs.length ? columnJobs.map(renderCard).join("") : '<p class="empty-column">No applications here</p>'}</div></section>`;
+      return `<section class="column ${column.className}" data-status="${column.status}"><header class="column-head" draggable="true" data-column-status="${column.status}"><div class="column-title"><span class="column-icon">${columnIcons[column.status]}</span><h2>${column.label}</h2><span class="column-count">${columnJobs.length}</span></div><div class="column-tools"><button type="button" aria-label="Column settings">⚙</button><span class="drag-handle" aria-label="Drag column">⠿</span></div></header><div class="cards">${columnJobs.length ? columnJobs.map(renderCard).join("") : '<p class="empty-column">No applications here</p>'}</div></section>`;
     })
     .join("");
 }
