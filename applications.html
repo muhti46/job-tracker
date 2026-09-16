@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Applications | Job Tracker</title>
+  <link rel="stylesheet" href="applications.css">
+</head>
+<body>
+  <main class="board-shell">
+    <header class="board-header">
+      <div>
+        <p class="eyebrow">CAREER WORKSPACE</p>
+        <h1>Applications</h1>
+      </div>
+      <div class="header-actions"><span id="total-count" class="total-count">0 jobs</span><a class="new-link" href="popup.html">+ Save from LinkedIn</a></div>
+    </header>
+    <section class="board-toolbar">
+      <label class="search-box"><span aria-hidden="true">⌕</span><input id="search-input" type="search" placeholder="Search company, role, location..." aria-label="Search applications"></label>
+      <label class="sort-box">Sort by <select id="sort-select" aria-label="Sort applications"><option value="newest">Newest</option><option value="oldest">Oldest</option><option value="company">Company</option><option value="title">Job title</option></select></label>
+    </section>
+    <p id="feedback" class="feedback" role="status" aria-live="polite"></p>
+    <section id="board" class="board" aria-live="polite"></section>
+  </main>
+  <script src="applications.js"></script>
+</body>
+</html>

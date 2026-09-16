@@ -16,5 +16,6 @@ Save LinkedIn jobs, edit their details, and track your application status.
 - Track Saved, Applied, Interview, Offer, and Rejected statuses
 - Edit all job details and add personal notes on a full-page editor
 - Delete jobs and filter by status
+- Open a full-page Applications kanban board from the LinkedIn floating menu
 
 LinkedIn's page structure may change, so DOM selectors may need updates over time.
