@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Edit Job | Job Tracker</title>
+  <link rel="stylesheet" href="edit.css">
+</head>
+<body>
+  <main class="editor-shell">
+    <header class="editor-header">
+      <a class="back-link" href="popup.html">&larr; Back to applications</a>
+      <p class="eyebrow">JOB DETAILS</p>
+      <h1>Edit application</h1>
+      <p class="subtitle">Keep the job information and your follow-up notes in one place.</p>
+    </header>
+    <p id="feedback" class="feedback" role="status" aria-live="polite"></p>
+    <form id="edit-form" class="editor-form">
+      <section class="form-section">
+        <h2>Job information</h2>
+        <div class="field-grid">
+          <label>Job title<input name="title" required></label>
+          <label>Company<input name="company"></label>
+          <label>Location<input name="location"></label>
+          <label>Work arrangement<input name="workType" placeholder="Remote, Hybrid, On-site"></label>
+          <label>Salary<input name="salary"></label>
+          <label>Application status<select name="status"><option value="saved">Saved</option><option value="applied">Applied</option><option value="interview">Interview</option><option value="offer">Offer</option><option value="rejected">Rejected</option></select></label>
+        </div>
+        <label>Job description<textarea name="description" rows="12" placeholder="Full job description"></textarea></label>
+        <label>Notes<textarea name="notes" rows="7" placeholder="Add your notes, contacts, follow-up dates, interview details..."></textarea></label>
+      </section>
+      <div class="form-actions"><button class="secondary-button" type="button" id="cancel-button">Cancel</button><button class="primary-button" id="save-button" type="submit"><span class="button-label">Save changes</span><span class="button-spinner" aria-hidden="true"></span></button></div>
+    </form>
+    <p id="missing-state" class="missing-state hidden">This job could not be found.</p>
+  </main>
+  <script src="edit.js"></script>
+</body>
+</html>

@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Job Tracker</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <main class="app-shell">
+    <header class="topbar">
+      <div>
+        <p class="eyebrow">CAREER DASHBOARD</p>
+        <h1>Job Tracker</h1>
+      </div>
+      <span id="job-count" class="count-badge">0 jobs</span>
+    </header>
+
+    <section id="capture-state" class="capture-card">
+      <div class="capture-icon">in</div>
+      <div>
+        <strong>Ready to capture a job</strong>
+        <p>Open a LinkedIn job page to capture its details here.</p>
+      </div>
+    </section>
+
+    <button id="save-current" class="primary-button" type="button">Save this job</button>
+    <p id="feedback" class="feedback" aria-live="polite"></p>
+
+    <section class="toolbar">
+      <div>
+        <p class="eyebrow">YOUR RECORDS</p>
+        <h2>Applications</h2>
+      </div>
+      <select id="status-filter" aria-label="Filter by status">
+        <option value="all">All</option>
+        <option value="saved">Saved</option>
+        <option value="applied">Applied</option>
+        <option value="interview">Interview</option>
+        <option value="offer">Offer</option>
+        <option value="rejected">Rejected</option>
+      </select>
+    </section>
+
+    <section id="job-list" class="job-list" aria-live="polite"></section>
+    <p id="empty-state" class="empty-state">No saved jobs yet.</p>
+  </main>
+  <script src="popup.js"></script>
+</body>
+</html>
