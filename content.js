@@ -51,7 +51,9 @@
     ];
     return (
       candidates
-        .map((element) => (element.innerText || element.textContent || "").trim())
+        .map((element) =>
+          (element.innerText || element.textContent || "").trim(),
+        )
         .find(
           (value) =>
             value &&
@@ -113,13 +115,14 @@
       ".job-details-jobs-unified-top-card__primary-description",
       ".jobs-unified-top-card__primary-description",
     ]);
-    const company = firstText([
-      ".job-details-jobs-unified-top-card__company-name",
-      ".jobs-unified-top-card__company-name",
-      ".job-details-jobs-unified-top-card__primary-description a",
-      ".topcard__org-name-link",
-      'a[href*="/company/"]',
-    ]) ||
+    const company =
+      firstText([
+        ".job-details-jobs-unified-top-card__company-name",
+        ".jobs-unified-top-card__company-name",
+        ".job-details-jobs-unified-top-card__primary-description a",
+        ".topcard__org-name-link",
+        'a[href*="/company/"]',
+      ]) ||
       (Array.isArray(structured.hiringOrganization)
         ? structured.hiringOrganization[0]?.name
         : structured.hiringOrganization?.name) ||
@@ -129,20 +132,22 @@
     const locationFromSchema = Array.isArray(structuredLocation)
       ? structuredLocation[0]
       : structuredLocation;
-    const jobLocation = firstText([
-      ".job-details-jobs-unified-top-card__bullet",
-      ".jobs-unified-top-card__bullet",
-      ".job-details-jobs-unified-top-card__primary-description-container .tvm__text--low-emphasis",
-      ".jobs-unified-top-card__primary-description-container .tvm__text--low-emphasis",
-      ".topcard__flavor--bullet",
-      '[class*="top-card"][class*="bullet"]',
-    ]) ||
+    const jobLocation =
+      firstText([
+        ".job-details-jobs-unified-top-card__bullet",
+        ".jobs-unified-top-card__bullet",
+        ".job-details-jobs-unified-top-card__primary-description-container .tvm__text--low-emphasis",
+        ".jobs-unified-top-card__primary-description-container .tvm__text--low-emphasis",
+        ".topcard__flavor--bullet",
+        '[class*="top-card"][class*="bullet"]',
+      ]) ||
       locationFromSchema?.address?.addressLocality ||
       locationFromSchema?.address?.addressRegion ||
       locationFromSchema?.address?.name ||
-      (topCardText.split(/\s*[·•]\s*/).find((part) =>
-        /,|remote|hybrid|on-site|onsite/i.test(part),
-      ) || "") ||
+      topCardText
+        .split(/\s*[·•]\s*/)
+        .find((part) => /,|remote|hybrid|on-site|onsite/i.test(part)) ||
+      "" ||
       locationCandidate() ||
       firstText([
         ".tvm__text--low-emphasis",
@@ -150,14 +155,15 @@
         '[class*="primary-description"] span',
       ]) ||
       "";
-    const description = firstText([
-      ".jobs-description__content .jobs-box__html-content",
-      ".jobs-description__content",
-      ".jobs-box__html-content",
-      ".jobs-description-content__text",
-      ".jobs-description-content__text--stretch",
-      '[class*="jobs-description"]',
-    ]) ||
+    const description =
+      firstText([
+        ".jobs-description__content .jobs-box__html-content",
+        ".jobs-description__content",
+        ".jobs-box__html-content",
+        ".jobs-description-content__text",
+        ".jobs-description-content__text--stretch",
+        '[class*="jobs-description"]',
+      ]) ||
       textNearHeading(
         /about (the )?job|job description|description|details zum jobangebot|stellenbeschreibung/i,
       ) ||
@@ -205,8 +211,8 @@
   }
 
   async function collectAfterExpanding() {
-    const expandButton = [...document.querySelectorAll("button")].find((element) =>
-      /show more|see more/i.test(element.textContent || ""),
+    const expandButton = [...document.querySelectorAll("button")].find(
+      (element) => /show more|see more/i.test(element.textContent || ""),
     );
     if (expandButton) {
       expandButton.click();
