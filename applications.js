@@ -140,6 +140,36 @@ function renderContacts(job) {
     : '<div class="contacts-empty">Contacts will appear here.<br><button id="empty-add-contact" class="empty-add-contact" type="button">+ Add contact</button></div>';
 }
 
+function findContactDefaults(job) {
+  const source = `${job.description || ""} ${job.notes || ""}`;
+  return {
+    name: (source.match(/(?:contact|ansprechpartner(?:in)?)\s*[:\-]?\s*([A-Z][a-z]+(?:\s+[A-Z][a-z]+){1,2})/i) || ["", ""])[1],
+    position: /recruiter/i.test(source) ? "Recruiter" : /hiring manager/i.test(source) ? "Hiring Manager" : "",
+    company: job.company || "",
+    email: (source.match(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/i) || [""])[0],
+    phone: (source.match(/(?:\+\d{1,3}[\s.-]?)?(?:\(?\d{2,4}\)?[\s.-]?)?\d{3,4}[\s.-]\d{3,4}/) || [""])[0],
+    linkedin: (source.match(/https?:\/\/(?:www\.)?linkedin\.com\/[^\s)]+/i) || [""])[0],
+    job: job.title || "",
+    notes: "",
+  };
+}
+
+function openContactModal() {
+  const job = jobs.find((item) => item.id === $("#modal-form").dataset.id);
+  if (!job) return;
+  const defaults = findContactDefaults(job);
+  const form = $("#contact-modal-form");
+  Object.entries(defaults).forEach(([field, value]) => {
+    if (form.elements[field]) form.elements[field].value = value;
+  });
+  $("#contact-modal").classList.remove("hidden");
+  form.elements.name.focus();
+}
+
+function closeContactModal() {
+  $("#contact-modal").classList.add("hidden");
+}
+
 function closeModal() {
   $("#job-modal").classList.add("hidden");
   document.body.classList.remove("modal-open");
@@ -280,10 +310,7 @@ $("#modal-form").addEventListener("submit", async (event) => {
   closeModal();
   showFeedback("Changes saved.");
 });
-$("#add-contact-button").addEventListener("click", () => {
-  $("#contact-form").classList.remove("hidden");
-  $("#contact-form").querySelector('[name="contactName"]').focus();
-});
+$("#add-contact-button").addEventListener("click", openContactModal);
 $("#cancel-contact-button").addEventListener("click", () => {
   $("#contact-form").classList.add("hidden");
 });
@@ -310,7 +337,7 @@ $("#save-contact-button").addEventListener("click", async () => {
 });
 $("#contacts-list").addEventListener("click", async (event) => {
   if (event.target.id === "empty-add-contact") {
-    $("#contact-form").classList.remove("hidden");
+    openContactModal();
     return;
   }
   const button = event.target.closest("[data-contact-index]");
@@ -322,8 +349,26 @@ $("#contacts-list").addEventListener("click", async (event) => {
   renderContacts(job);
   showFeedback("Contact removed.");
 });
+$("#contact-modal").addEventListener("click", (event) => {
+  if (event.target.dataset.action === "close-contact-modal") closeContactModal();
+});
+$("#contact-modal-form").addEventListener("submit", async (event) => {
+  event.preventDefault();
+  const job = jobs.find((item) => item.id === $("#modal-form").dataset.id);
+  if (!job) return;
+  const values = Object.fromEntries(new FormData(event.currentTarget).entries());
+  if (!values.name.trim()) return showFeedback("Add a contact name first.");
+  job.contacts = [...(job.contacts || []), values];
+  await chrome.storage.local.set({ jobs });
+  renderContacts(job);
+  closeContactModal();
+  showFeedback("Contact added.");
+});
 document.addEventListener("keydown", (event) => {
-  if (event.key === "Escape") closeModal();
+  if (event.key === "Escape") {
+    closeContactModal();
+    closeModal();
+  }
 });
 
 chrome.storage.onChanged.addListener((changes, area) => {

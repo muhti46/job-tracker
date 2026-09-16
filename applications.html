@@ -38,6 +38,20 @@
       </form>
     </section>
   </div>
+  <div id="contact-modal" class="job-modal hidden" role="dialog" aria-modal="true" aria-labelledby="contact-modal-title">
+    <div class="modal-backdrop" data-action="close-contact-modal"></div>
+    <section class="contact-modal-panel">
+      <header class="contact-modal-header"><h2 id="contact-modal-title">Add Contact</h2><button class="modal-close" type="button" data-action="close-contact-modal" aria-label="Close">&times;</button></header>
+      <form id="contact-modal-form" class="contact-modal-form">
+        <label>Name<input name="name" placeholder="Contact's Name"></label>
+        <label>Position<input name="position" placeholder="Position"></label>
+        <div class="modal-grid"><label>Company<input name="company" placeholder="Company Name"></label><label>Email<input name="email" type="email" placeholder="Email Address"></label><label>Phone Number<input name="phone" placeholder="Phone Number"></label><label>LinkedIn<input name="linkedin" placeholder="LinkedIn URL"></label></div>
+        <label>Link Job<input name="job" readonly></label>
+        <label>Contact Notes<textarea name="notes" rows="5" placeholder="Notes about this contact"></textarea></label>
+        <footer class="modal-footer"><button class="modal-secondary" type="button" data-action="close-contact-modal">Cancel</button><button class="modal-primary" type="submit">Add Contact</button></footer>
+      </form>
+    </section>
+  </div>
   <script src="applications.js"></script>
 </body>
 </html>
