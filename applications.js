@@ -1,16 +1,18 @@
 const columns = [
-  { status: "saved", label: "Saved", className: "saved" },
   { status: "applied", label: "Applied", className: "applied" },
   { status: "interview", label: "Interviewing", className: "interview" },
   { status: "offer", label: "Offer", className: "offer" },
   { status: "rejected", label: "Rejected", className: "rejected" },
 ];
 const columnIcons = {
-  saved: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3h9l3 3v15H6zM9 3v6h6V3M9 17h6"/></svg>',
-  applied: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4h10l4 4v12H5zM9 4v5h6V4M8 15h8M8 18h5"/></svg>',
-  interview: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 5a9 9 0 0 0 12 12l2 2M7 5l-3 3m3-3-3-3M17 19l3-3m-3 3 3 3"/></svg>',
-  offer: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 4h12v16H6zM9 4v5h6V4M9 13h6M9 17h4"/></svg>',
-  rejected: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 4h12v16H6zM9 8l6 6m0-6-6 6"/></svg>',
+  applied:
+    '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4h10l4 4v12H5zM9 4v5h6V4M8 15h8M8 18h5"/></svg>',
+  interview:
+    '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 5a9 9 0 0 0 12 12l2 2M7 5l-3 3m3-3-3-3M17 19l3-3m-3 3 3 3"/></svg>',
+  offer:
+    '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 4h12v16H6zM9 4v5h6V4M9 13h6M9 17h4"/></svg>',
+  rejected:
+    '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 4h12v16H6zM9 8l6 6m0-6-6 6"/></svg>',
 };
 let jobs = [];
 let columnOrder = columns.map((column) => column.status);
@@ -32,8 +34,15 @@ const escapeHtml = (value = "") =>
 
 async function loadJobs() {
   const data = await chrome.storage.local.get({ jobs: [] });
-  jobs = data.jobs;
-  const savedOrder = await chrome.storage.local.get({ columnOrder: columnOrder });
+  jobs = data.jobs.map((job) =>
+    job.status === "saved" ? { ...job, status: "applied" } : job,
+  );
+  if (jobs.some((job, index) => job.status !== data.jobs[index]?.status)) {
+    await chrome.storage.local.set({ jobs });
+  }
+  const savedOrder = await chrome.storage.local.get({
+    columnOrder: columnOrder,
+  });
   columnOrder = savedOrder.columnOrder.filter((status) =>
     columns.some((column) => column.status === status),
   );
@@ -72,11 +81,13 @@ function formatDate(value) {
 function renderBoard() {
   const visibleJobs = filteredJobs();
   $("#total-count").textContent = `${jobs.length} jobs`;
-  const orderedColumns = columnOrder.map((status) => columns.find((column) => column.status === status));
+  const orderedColumns = columnOrder.map((status) =>
+    columns.find((column) => column.status === status),
+  );
   $("#board").innerHTML = orderedColumns
     .map((column) => {
       const columnJobs = visibleJobs.filter(
-        (job) => (job.status || "saved") === column.status,
+        (job) => (job.status || "applied") === column.status,
       );
       return `<section class="column ${column.className}" data-status="${column.status}"><header class="column-head" draggable="true" data-column-status="${column.status}"><div class="column-title"><span class="column-icon">${columnIcons[column.status]}</span><h2>${column.label}</h2><span class="column-count">${columnJobs.length}</span></div><div class="column-tools"><button type="button" aria-label="Column settings">⚙</button><span class="drag-handle" aria-label="Drag column">⠿</span></div></header><div class="cards">${columnJobs.length ? columnJobs.map(renderCard).join("") : '<p class="empty-column">No applications here</p>'}</div></section>`;
     })
@@ -118,13 +129,16 @@ $("#board").addEventListener("dragover", (event) => {
 });
 $("#board").addEventListener("dragleave", (event) => {
   const column = event.target.closest(".column");
-  if (column && !column.contains(event.relatedTarget)) column.classList.remove("drag-over");
+  if (column && !column.contains(event.relatedTarget))
+    column.classList.remove("drag-over");
 });
 $("#board").addEventListener("drop", async (event) => {
   const targetColumn = event.target.closest(".column");
   if (!targetColumn) return;
   event.preventDefault();
-  document.querySelectorAll(".drag-over, .is-dragging").forEach((element) => element.classList.remove("drag-over", "is-dragging"));
+  document
+    .querySelectorAll(".drag-over, .is-dragging")
+    .forEach((element) => element.classList.remove("drag-over", "is-dragging"));
   const targetStatus = targetColumn.dataset.status;
   if (draggedCardId) {
     const job = jobs.find((item) => item.id === draggedCardId);
@@ -132,7 +146,9 @@ $("#board").addEventListener("drop", async (event) => {
       job.status = targetStatus;
       job.updatedAt = new Date().toISOString();
       await chrome.storage.local.set({ jobs });
-      showFeedback(`Moved to ${columns.find((column) => column.status === targetStatus).label}.`);
+      showFeedback(
+        `Moved to ${columns.find((column) => column.status === targetStatus).label}.`,
+      );
     }
     draggedCardId = "";
     renderBoard();
@@ -142,7 +158,11 @@ $("#board").addEventListener("drop", async (event) => {
     const fromIndex = columnOrder.indexOf(draggedColumnStatus);
     const toIndex = columnOrder.indexOf(targetStatus);
     columnOrder.splice(fromIndex, 1);
-    columnOrder.splice(fromIndex < toIndex ? toIndex - 1 : toIndex, 0, draggedColumnStatus);
+    columnOrder.splice(
+      fromIndex < toIndex ? toIndex - 1 : toIndex,
+      0,
+      draggedColumnStatus,
+    );
     await chrome.storage.local.set({ columnOrder });
     draggedColumnStatus = "";
     renderBoard();
@@ -151,7 +171,9 @@ $("#board").addEventListener("drop", async (event) => {
 $("#board").addEventListener("dragend", () => {
   draggedCardId = "";
   draggedColumnStatus = "";
-  document.querySelectorAll(".drag-over, .is-dragging").forEach((element) => element.classList.remove("drag-over", "is-dragging"));
+  document
+    .querySelectorAll(".drag-over, .is-dragging")
+    .forEach((element) => element.classList.remove("drag-over", "is-dragging"));
 });
 $("#board").addEventListener("click", async (event) => {
   const action = event.target.dataset.action;

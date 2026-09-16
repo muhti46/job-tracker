@@ -35,7 +35,7 @@ async function loadJob() {
     const input = form.elements[field];
     if (input) input.value = job[field] || "";
   }
-  form.elements.status.value = job.status || "saved";
+  form.elements.status.value = job.status || "applied";
 }
 
 form.addEventListener("submit", async (event) => {

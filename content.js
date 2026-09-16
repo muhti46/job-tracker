@@ -308,10 +308,12 @@
     launcher.type = "button";
     launcher.title = "Job Tracker";
     launcher.setAttribute("aria-label", "Open Job Tracker");
-    launcher.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v11m0 0 4-4m-4 4-4-4M5 17v2a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-2"/></svg>';
+    launcher.innerHTML =
+      '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v11m0 0 4-4m-4 4-4-4M5 17v2a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-2"/></svg>';
     const panel = document.createElement("div");
     panel.id = "job-tracker-menu";
-    panel.innerHTML = '<button type="button" data-action="applications"><span class="menu-icon">▦</span>Applications</button><button type="button" data-action="save"><span class="menu-icon">↓</span>Save this job</button>';
+    panel.innerHTML =
+      '<button type="button" data-action="applications"><span class="menu-icon">▦</span>Applications</button><button type="button" data-action="save"><span class="menu-icon">↓</span>Apply job</button>';
     const shell = document.createElement("div");
     shell.id = "job-tracker-floating-shell";
     shell.append(launcher, panel);
@@ -350,24 +352,27 @@
       opacity: "0",
       visibility: "hidden",
       transform: "translateX(10px)",
-      transition: "opacity .18s ease, transform .18s ease, visibility .18s ease",
+      transition:
+        "opacity .18s ease, transform .18s ease, visibility .18s ease",
       pointerEvents: "none",
     });
     const menuButtons = panel.querySelectorAll("button");
-    menuButtons.forEach((menuButton) => Object.assign(menuButton.style, {
-      display: "flex",
-      alignItems: "center",
-      gap: "9px",
-      minWidth: "166px",
-      padding: "10px 12px",
-      border: "0",
-      borderRadius: "9px",
-      color: "#173b2b",
-      background: "#f3f8f1",
-      font: "600 13px Arial, sans-serif",
-      textAlign: "left",
-      cursor: "pointer",
-    }));
+    menuButtons.forEach((menuButton) =>
+      Object.assign(menuButton.style, {
+        display: "flex",
+        alignItems: "center",
+        gap: "9px",
+        minWidth: "166px",
+        padding: "10px 12px",
+        border: "0",
+        borderRadius: "9px",
+        color: "#173b2b",
+        background: "#f3f8f1",
+        font: "600 13px Arial, sans-serif",
+        textAlign: "left",
+        cursor: "pointer",
+      }),
+    );
     const icon = launcher.querySelector("svg");
     Object.assign(icon.style, {
       width: "21px",
@@ -427,35 +432,49 @@
       launcher.style.cursor = "grab";
       if (moved) {
         const bounds = shell.getBoundingClientRect();
-        await chrome.storage.local.set({ floatingPosition: { left: bounds.left, top: bounds.top } });
+        await chrome.storage.local.set({
+          floatingPosition: { left: bounds.left, top: bounds.top },
+        });
       }
     });
-    chrome.storage.local.get({ floatingPosition: null }).then(({ floatingPosition }) => {
-      if (!floatingPosition) return;
-      const left = Math.min(Math.max(8, floatingPosition.left), window.innerWidth - shell.offsetWidth - 8);
-      const top = Math.min(Math.max(8, floatingPosition.top), window.innerHeight - shell.offsetHeight - 8);
-      shell.style.left = `${left}px`;
-      shell.style.top = `${top}px`;
-      shell.style.right = "auto";
-      shell.style.transform = "none";
-    });
-    panel.querySelector('[data-action="applications"]').addEventListener("click", () => {
-      chrome.runtime.sendMessage({ type: "OPEN_APPLICATIONS" });
-    });
-    panel.querySelector('[data-action="save"]').addEventListener("click", async () => {
-      const job = {
-        ...(await collectAfterExpanding()),
-        id: crypto.randomUUID(),
-        status: "saved",
-        createdAt: new Date().toISOString(),
-      };
-      const data = await chrome.storage.local.get({ jobs: [] });
-      await chrome.storage.local.set({ jobs: [job, ...data.jobs] });
-      launcher.title = "Saved";
-      launcher.setAttribute("aria-label", "Saved");
-      launcher.style.background = "#dce4de";
-      panel.querySelector('[data-action="save"]').textContent = "Saved";
-    });
+    chrome.storage.local
+      .get({ floatingPosition: null })
+      .then(({ floatingPosition }) => {
+        if (!floatingPosition) return;
+        const left = Math.min(
+          Math.max(8, floatingPosition.left),
+          window.innerWidth - shell.offsetWidth - 8,
+        );
+        const top = Math.min(
+          Math.max(8, floatingPosition.top),
+          window.innerHeight - shell.offsetHeight - 8,
+        );
+        shell.style.left = `${left}px`;
+        shell.style.top = `${top}px`;
+        shell.style.right = "auto";
+        shell.style.transform = "none";
+      });
+    panel
+      .querySelector('[data-action="applications"]')
+      .addEventListener("click", () => {
+        chrome.runtime.sendMessage({ type: "OPEN_APPLICATIONS" });
+      });
+    panel
+      .querySelector('[data-action="save"]')
+      .addEventListener("click", async () => {
+        const job = {
+          ...(await collectAfterExpanding()),
+          id: crypto.randomUUID(),
+          status: "applied",
+          createdAt: new Date().toISOString(),
+        };
+        const data = await chrome.storage.local.get({ jobs: [] });
+        await chrome.storage.local.set({ jobs: [job, ...data.jobs] });
+        launcher.title = "Applied";
+        launcher.setAttribute("aria-label", "Applied");
+        launcher.style.background = "#dce4de";
+        panel.querySelector('[data-action="save"]').textContent = "Applied";
+      });
     document.body.appendChild(shell);
   }
 

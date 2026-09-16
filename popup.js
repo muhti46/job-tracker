@@ -1,5 +1,4 @@
 const statusLabels = {
-  saved: "Saved",
   applied: "Applied",
   interview: "Interview",
   offer: "Offer",
@@ -50,7 +49,7 @@ async function saveCurrent() {
   const newJob = {
     ...job,
     id: crypto.randomUUID(),
-    status: "saved",
+    status: "applied",
     createdAt: new Date().toISOString(),
   };
   jobs = [newJob, ...jobs];
