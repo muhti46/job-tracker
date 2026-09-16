@@ -81,7 +81,10 @@ function statusLabel(status) {
 }
 
 function relativeTime(value) {
-  const days = Math.max(0, Math.floor((Date.now() - new Date(value).getTime()) / 86400000));
+  const days = Math.max(
+    0,
+    Math.floor((Date.now() - new Date(value).getTime()) / 86400000),
+  );
   return days === 0 ? "today" : `${days} day${days === 1 ? "" : "s"} ago`;
 }
 
@@ -90,7 +93,11 @@ function ensureHistory(job) {
   if (!job.history?.length) {
     job.history = [{ type: "created", status: "applied", at: createdAt }];
     if (job.status && job.status !== "applied") {
-      job.history.push({ type: "moved", status: job.status, at: job.updatedAt || createdAt });
+      job.history.push({
+        type: "moved",
+        status: job.status,
+        at: job.updatedAt || createdAt,
+      });
     }
     return job;
   }
@@ -101,14 +108,20 @@ function ensureHistory(job) {
       (event) => event.type === "moved" && event.status === job.status,
     );
     if (job.status && job.status !== "applied" && !hasCurrentStatus) {
-      job.history.push({ type: "moved", status: job.status, at: job.updatedAt || createdAt });
+      job.history.push({
+        type: "moved",
+        status: job.status,
+        at: job.updatedAt || createdAt,
+      });
     }
   }
   return job;
 }
 
 function renderTimeline(job) {
-  const events = (job.history || []).slice().sort((first, second) => new Date(second.at) - new Date(first.at));
+  const events = (job.history || [])
+    .slice()
+    .sort((first, second) => new Date(second.at) - new Date(first.at));
   $("#modal-timeline").innerHTML = events.length
     ? `<div class="timeline-list">${events.map((event) => `<div class="timeline-event"><span class="timeline-dot"></span><div><strong>${event.type === "created" ? "Created in" : "Moved to"} <em class="status-${escapeHtml(event.status)}">${escapeHtml(statusLabel(event.status))}</em></strong><small>${relativeTime(event.at)}</small></div></div>`).join("")}</div>`
     : '<p class="timeline-empty">No timeline events yet.</p>';
@@ -239,6 +252,12 @@ function showFeedback(message) {
   setTimeout(() => $("#feedback").classList.remove("visible"), 2400);
 }
 
+function syncColumnOrderFromDom() {
+  columnOrder = [...document.querySelectorAll(".column")].map(
+    (column) => column.dataset.status,
+  );
+}
+
 $("#search-input").addEventListener("input", renderBoard);
 $("#sort-select").addEventListener("change", renderBoard);
 $("#board").addEventListener("dragstart", (event) => {
@@ -260,6 +279,22 @@ $("#board").addEventListener("dragover", (event) => {
   const column = event.target.closest(".column");
   if (!column) return;
   event.preventDefault();
+  if (draggedColumnStatus) {
+    const draggedColumn = document.querySelector(
+      `.column[data-status="${draggedColumnStatus}"]`,
+    );
+    if (draggedColumn && draggedColumn !== column) {
+      const bounds = column.getBoundingClientRect();
+      const insertBefore = event.clientX < bounds.left + bounds.width / 2;
+      if (insertBefore) {
+        column.parentElement.insertBefore(draggedColumn, column);
+      } else {
+        column.parentElement.insertBefore(draggedColumn, column.nextElementSibling);
+      }
+      syncColumnOrderFromDom();
+    }
+    return;
+  }
   column.classList.add("drag-over");
 });
 $("#board").addEventListener("dragleave", (event) => {
@@ -282,7 +317,12 @@ $("#board").addEventListener("drop", async (event) => {
       ensureHistory(job);
       job.status = targetStatus;
       job.updatedAt = new Date().toISOString();
-      job.history.push({ type: "moved", from: previousStatus, status: targetStatus, at: job.updatedAt });
+      job.history.push({
+        type: "moved",
+        from: previousStatus,
+        status: targetStatus,
+        at: job.updatedAt,
+      });
       await chrome.storage.local.set({ jobs });
       showFeedback(
         `Moved to ${columns.find((column) => column.status === targetStatus).label}.`,
@@ -293,20 +333,19 @@ $("#board").addEventListener("drop", async (event) => {
     return;
   }
   if (draggedColumnStatus && draggedColumnStatus !== targetStatus) {
-    const fromIndex = columnOrder.indexOf(draggedColumnStatus);
-    const toIndex = columnOrder.indexOf(targetStatus);
-    columnOrder.splice(fromIndex, 1);
-    columnOrder.splice(
-      fromIndex < toIndex ? toIndex - 1 : toIndex,
-      0,
-      draggedColumnStatus,
-    );
+    syncColumnOrderFromDom();
     await chrome.storage.local.set({ columnOrder });
     draggedColumnStatus = "";
-    renderBoard();
+    document
+      .querySelectorAll(".drag-over, .is-dragging")
+      .forEach((element) => element.classList.remove("drag-over", "is-dragging"));
   }
 });
-$("#board").addEventListener("dragend", () => {
+$("#board").addEventListener("dragend", async () => {
+  if (draggedColumnStatus) {
+    syncColumnOrderFromDom();
+    await chrome.storage.local.set({ columnOrder });
+  }
   draggedCardId = "";
   draggedColumnStatus = "";
   document
