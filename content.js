@@ -14,6 +14,18 @@
     return "";
   }
 
+  function firstMatchingText(selectors, predicate) {
+    for (const selector of selectors) {
+      for (const element of document.querySelectorAll(selector)) {
+        const value = (element.innerText || element.textContent || "")
+          .replace(/\s+/g, " ")
+          .trim();
+        if (value && predicate(value)) return value;
+      }
+    }
+    return "";
+  }
+
   function longestText(selectors, minimumLength = 1) {
     let longest = "";
     for (const selector of selectors) {
@@ -63,17 +75,15 @@
         ".job-details-jobs-unified-top-card__primary-description-container span, .jobs-unified-top-card__primary-description-container span",
       ),
     ];
+    const isLocation = (value) =>
+      value.length < 120 &&
+      /,/.test(value) &&
+      !/remote|hybrid|on-site|onsite|full-time|part-time|notification|benachrichtig|bewerben|kandidat|candidate|mbi gmbh/i.test(
+        value,
+      );
     const candidateFromElements = candidates
-        .map((element) =>
-          (element.innerText || element.textContent || "").trim(),
-        )
-        .find(
-          (value) =>
-            value &&
-            value.length < 120 &&
-            !/remote|hybrid|on-site|onsite|full-time|part-time/i.test(value) &&
-            !/^mbi gmbh$/i.test(value),
-        ) || "";
+      .map((element) => (element.innerText || element.textContent || "").trim())
+      .find((value) => value && isLocation(value)) || "";
     if (candidateFromElements) return candidateFromElements;
     return (
       pageText()
@@ -83,8 +93,8 @@
           (value) =>
             value &&
             value.length < 100 &&
-            /,|\b[A-Z][a-z]+\b/.test(value) &&
-            !/remote|hybrid|on-site|onsite|full-time|part-time|mbi gmbh/i.test(
+            /,/.test(value) &&
+            !/remote|hybrid|on-site|onsite|full-time|part-time|notification|benachrichtig|bewerben|kandidat|candidate|mbi gmbh/i.test(
               value,
             ),
         ) || ""
@@ -160,12 +170,19 @@
       ? structuredLocation[0]
       : structuredLocation;
     const jobLocation =
-      firstText([
+      firstMatchingText(
+        [
         ".job-details-jobs-unified-top-card__bullet",
         ".jobs-unified-top-card__bullet",
         ".topcard__flavor--bullet",
         '[class*="top-card"][class*="bullet"]',
-      ]) ||
+        ],
+        (value) =>
+          /,/.test(value) &&
+          !/remote|hybrid|on-site|onsite|full-time|part-time|notification|benachrichtig|bewerben|kandidat|candidate|mbi gmbh/i.test(
+            value,
+          ),
+      ) ||
       locationFromSchema?.address?.addressLocality ||
       locationFromSchema?.address?.addressRegion ||
       locationFromSchema?.address?.name ||
@@ -174,9 +191,7 @@
         .find((part) => /,|remote|hybrid|on-site|onsite/i.test(part)) ||
       "" ||
       locationCandidate() ||
-      firstText([
-        '[class*="top-card"] [class*="bullet"]',
-      ]) ||
+      locationCandidate() ||
       "";
     const description =
       textNearHeading(
