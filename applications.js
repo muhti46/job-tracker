@@ -37,9 +37,7 @@ async function loadJobs() {
   jobs = data.jobs.map((job) =>
     ensureHistory(job.status === "saved" ? { ...job, status: "applied" } : job),
   );
-  if (jobs.some((job, index) => job.status !== data.jobs[index]?.status || !data.jobs[index]?.history)) {
-    await chrome.storage.local.set({ jobs });
-  }
+  await chrome.storage.local.set({ jobs });
   const savedOrder = await chrome.storage.local.get({
     columnOrder: columnOrder,
   });
@@ -88,8 +86,23 @@ function relativeTime(value) {
 }
 
 function ensureHistory(job) {
+  const createdAt = job.createdAt || new Date().toISOString();
   if (!job.history?.length) {
-    job.history = [{ type: "created", status: job.status || "applied", at: job.createdAt || new Date().toISOString() }];
+    job.history = [{ type: "created", status: "applied", at: createdAt }];
+    if (job.status && job.status !== "applied") {
+      job.history.push({ type: "moved", status: job.status, at: job.updatedAt || createdAt });
+    }
+    return job;
+  }
+  const firstEvent = job.history.find((event) => event.type === "created");
+  if (firstEvent && firstEvent.status !== "applied") {
+    firstEvent.status = "applied";
+    const hasCurrentStatus = job.history.some(
+      (event) => event.type === "moved" && event.status === job.status,
+    );
+    if (job.status && job.status !== "applied" && !hasCurrentStatus) {
+      job.history.push({ type: "moved", status: job.status, at: job.updatedAt || createdAt });
+    }
   }
   return job;
 }
