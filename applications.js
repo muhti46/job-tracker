@@ -282,6 +282,7 @@ $("#board").addEventListener("dragover", (event) => {
   if (!column) return;
   event.preventDefault();
   if (draggedColumnStatus) {
+    column.classList.add("drag-over");
     const draggedColumn = document.querySelector(
       `.column[data-status="${draggedColumnStatus}"]`,
     );
@@ -309,6 +310,10 @@ $("#board").addEventListener("dragover", (event) => {
     return;
   }
   column.classList.add("drag-over");
+});
+$("#board").addEventListener("dragenter", (event) => {
+  const column = event.target.closest(".column");
+  if (column) column.classList.add("drag-over");
 });
 $("#board").addEventListener("dragleave", (event) => {
   const column = event.target.closest(".column");
