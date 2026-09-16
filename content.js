@@ -393,7 +393,7 @@
     shell.addEventListener("mouseenter", showMenu);
     shell.addEventListener("mouseleave", hideMenu);
     panel.querySelector('[data-action="applications"]').addEventListener("click", () => {
-      window.open(chrome.runtime.getURL("popup.html"), "_blank");
+      chrome.runtime.sendMessage({ type: "OPEN_APPLICATIONS" });
     });
     panel.querySelector('[data-action="save"]').addEventListener("click", async () => {
       const job = {
