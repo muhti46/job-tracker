@@ -14,6 +14,41 @@
     return "";
   }
 
+  function normalizeMultiline(value) {
+    return (value || "")
+      .split("\n")
+      .map((line) => line.replace(/[ \t]+/g, " ").trim())
+      .join("\n")
+      .replace(/\n{3,}/g, "\n\n")
+      .trim();
+  }
+
+  function firstTextMultiline(selectors) {
+    for (const selector of selectors) {
+      const element = document.querySelector(selector);
+      const value = normalizeMultiline(
+        element?.innerText || element?.textContent || "",
+      );
+      if (value) return value;
+    }
+    return "";
+  }
+
+  function longestTextMultiline(selectors, minimumLength = 1) {
+    let longest = "";
+    for (const selector of selectors) {
+      for (const element of document.querySelectorAll(selector)) {
+        const value = normalizeMultiline(
+          element.innerText || element.textContent || "",
+        );
+        if (value.length >= minimumLength && value.length > longest.length) {
+          longest = value;
+        }
+      }
+    }
+    return longest;
+  }
+
   function firstMatchingText(selectors, predicate) {
     for (const selector of selectors) {
       for (const element of document.querySelectorAll(selector)) {
@@ -48,18 +83,18 @@
     if (!heading) return "";
     const headingText = (heading.textContent || "").trim();
     const directSibling = heading.nextElementSibling;
-    const siblingText = (directSibling?.innerText || "").trim();
+    const siblingText = normalizeMultiline(directSibling?.innerText || "");
     if (siblingText && siblingText.length > headingText.length) {
-      return siblingText.replace(/\s+/g, " ").trim();
+      return siblingText;
     }
     let ancestor = heading.parentElement;
     for (let level = 0; ancestor && level < 4; level += 1) {
-      const content = [...ancestor.children]
-        .filter((child) => child !== heading && !child.contains(heading))
-        .map((child) => child.innerText || child.textContent || "")
-        .join(" ")
-        .replace(/\s+/g, " ")
-        .trim();
+      const content = normalizeMultiline(
+        [...ancestor.children]
+          .filter((child) => child !== heading && !child.contains(heading))
+          .map((child) => child.innerText || child.textContent || "")
+          .join("\n"),
+      );
       if (content.length > 40) return content;
       ancestor = ancestor.parentElement;
     }
@@ -145,11 +180,13 @@
 
   function cleanText(value) {
     if (!value) return "";
+    const withBreaks = value
+      .replace(/<\s*br\s*\/?>/gi, "\n")
+      .replace(/<\/(p|div|li|h[1-6])>/gi, "\n")
+      .replace(/<li[^>]*>/gi, "\u2022 ");
     const container = document.createElement("div");
-    container.innerHTML = value;
-    return (container.innerText || container.textContent || "")
-      .replace(/\s+/g, " ")
-      .trim();
+    container.innerHTML = withBreaks;
+    return normalizeMultiline(container.textContent || "");
   }
 
   function structuredJob() {
@@ -238,12 +275,12 @@
       textNearHeading(
         /about (the )?job|job description|description|details zum jobangebot|stellenbeschreibung/i,
       ) ||
-      firstText([
+      firstTextMultiline([
         ".jobs-description__content .jobs-box__html-content",
         ".jobs-description-content__text",
         ".jobs-description-content__text--stretch",
       ]) ||
-      longestText(
+      longestTextMultiline(
         [
           '[class*="jobs-description"]',
           '[id*="job-details"] [class*="description"]',
@@ -309,11 +346,11 @@
     launcher.title = "Job Tracker";
     launcher.setAttribute("aria-label", "Open Job Tracker");
     launcher.innerHTML =
-      '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v11m0 0 4-4m-4 4-4-4M5 17v2a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-2"/></svg>';
+      '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="2" y="7" width="20" height="14" rx="2.5"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/><line x1="2" y1="12.5" x2="22" y2="12.5"/></svg>';
     const panel = document.createElement("div");
     panel.id = "job-tracker-menu";
     panel.innerHTML =
-      '<button type="button" data-action="applications"><span class="menu-icon">▦</span>Applications</button><button type="button" data-action="save"><span class="menu-icon">↓</span>Apply job</button>';
+      '<button type="button" data-action="applications"><span class="menu-icon">▦</span>Applications</button><button type="button" class="apply-job-button" data-action="save"><span class="menu-icon apply-icon"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M3.4 20.6 21 12 3.4 3.4l.1 6.6L15 12 3.5 14z"/></svg></span><span class="apply-label">Apply Job</span></button>';
     const shell = document.createElement("div");
     shell.id = "job-tracker-floating-shell";
     shell.append(launcher, panel);
@@ -361,15 +398,16 @@
       Object.assign(menuButton.style, {
         display: "flex",
         alignItems: "center",
+        justifyContent: "center",
         gap: "9px",
         minWidth: "166px",
-        padding: "10px 12px",
+        padding: "11px 20px",
         border: "0",
-        borderRadius: "9px",
-        color: "#173b2b",
-        background: "#f3f8f1",
-        font: "600 13px Arial, sans-serif",
-        textAlign: "left",
+        borderRadius: "999px",
+        color: "#4c1d95",
+        background: "#ede4fb",
+        font: "700 13px Arial, sans-serif",
+        textAlign: "center",
         cursor: "pointer",
       }),
     );
@@ -383,6 +421,19 @@
       strokeLinecap: "round",
       strokeLinejoin: "round",
     });
+    const applyButton = panel.querySelector(".apply-job-button");
+    Object.assign(applyButton.style, {
+      justifyContent: "center",
+      minWidth: "166px",
+      padding: "11px 20px",
+      borderRadius: "999px",
+      color: "#ffffff",
+      background: "#6d28d9",
+      boxShadow: "0 10px 22px rgba(109,40,217,.38)",
+      fontWeight: "700",
+    });
+    const applyIcon = applyButton.querySelector(".apply-icon svg");
+    Object.assign(applyIcon.style, { width: "16px", height: "16px" });
     const showMenu = () => {
       panel.style.opacity = "1";
       panel.style.visibility = "visible";
@@ -459,22 +510,29 @@
       .addEventListener("click", () => {
         chrome.runtime.sendMessage({ type: "OPEN_APPLICATIONS" });
       });
-    panel
-      .querySelector('[data-action="save"]')
-      .addEventListener("click", async () => {
-        const job = {
-          ...(await collectAfterExpanding()),
-          id: crypto.randomUUID(),
-          status: "applied",
-          createdAt: new Date().toISOString(),
-        };
-        const data = await chrome.storage.local.get({ jobs: [] });
-        await chrome.storage.local.set({ jobs: [job, ...data.jobs] });
-        launcher.title = "Applied";
-        launcher.setAttribute("aria-label", "Applied");
-        launcher.style.background = "#dce4de";
-        panel.querySelector('[data-action="save"]').textContent = "Applied";
-      });
+    let jobSaved = false;
+    const savedIconSvg =
+      '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>';
+    applyButton.addEventListener("click", async () => {
+      if (jobSaved) {
+        chrome.runtime.sendMessage({ type: "OPEN_APPLICATIONS" });
+        return;
+      }
+      const job = {
+        ...(await collectAfterExpanding()),
+        id: crypto.randomUUID(),
+        status: "applied",
+        createdAt: new Date().toISOString(),
+      };
+      const data = await chrome.storage.local.get({ jobs: [] });
+      await chrome.storage.local.set({ jobs: [job, ...data.jobs] });
+      jobSaved = true;
+      launcher.title = "Saved";
+      launcher.setAttribute("aria-label", "Saved");
+      launcher.style.background = "#dce4de";
+      applyButton.querySelector(".apply-label").textContent = "Saved";
+      applyButton.querySelector(".apply-icon").innerHTML = savedIconSvg;
+    });
     document.body.appendChild(shell);
   }
 

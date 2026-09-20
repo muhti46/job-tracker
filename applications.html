@@ -30,7 +30,7 @@
       <nav class="modal-tabs" aria-label="Application sections"><button class="active" type="button" data-tab="details">ⓘ Details</button><button type="button" data-tab="description">▤ Description</button><button type="button" data-tab="contacts">♙ Contacts</button><button type="button" data-tab="notes">✎ Notes</button><button type="button" data-tab="timeline">◷ Timeline</button></nav>
       <form id="modal-form" class="modal-form">
         <section class="modal-tab-panel active" data-panel="details"><div class="modal-grid"><label>Job title<input name="title" required></label><label>Company<input name="company"></label><label>Location<input name="location"></label><label>Work arrangement<input name="workType"></label><label>Salary<input name="salary"></label><label>Application status<select name="status"><option value="applied">Applied</option><option value="interview">Interviewing</option><option value="offer">Offer</option><option value="rejected">Rejected</option></select></label></div></section>
-        <section class="modal-tab-panel" data-panel="description"><label>Job description<textarea name="description" rows="12"></textarea></label></section>
+        <section class="modal-tab-panel" data-panel="description"><div class="description-toolbar"><span class="field-label">Job description</span><button type="button" id="description-edit-toggle" class="text-toggle">Edit</button></div><div id="description-view" class="description-view"></div><textarea id="description-input" name="description" rows="14" class="hidden"></textarea></section>
         <section class="modal-tab-panel" data-panel="contacts"><div class="contacts-heading"><div><h3>Contacts</h3><p>Manage recruiters, hiring managers, and your key contacts.</p></div><button id="add-contact-button" class="add-contact-button" type="button">+ Add contact</button></div><div id="contacts-list" class="contacts-list"></div><div id="contact-form" class="contact-form hidden"><div class="modal-grid"><label>Name<input name="contactName" placeholder="Contact name"></label><label>Position<input name="contactPosition" placeholder="Position"></label><label>Company<input name="contactCompany" placeholder="Company name"></label><label>Email<input name="contactEmail" type="email" placeholder="Email address"></label><label>Phone<input name="contactPhone" placeholder="Phone number"></label><label>LinkedIn<input name="contactLinkedin" placeholder="LinkedIn URL"></label></div><label>Contact notes<textarea name="contactNotes" rows="4" placeholder="Notes about this contact"></textarea><div class="contact-form-actions"><button id="cancel-contact-button" class="modal-secondary" type="button">Cancel</button><button id="save-contact-button" class="modal-primary" type="button">Add contact</button></div></div></section>
         <section class="modal-tab-panel" data-panel="notes"><label>Notes<textarea name="notes" rows="12" placeholder="Add notes, contacts, follow-up dates, interview details..."></textarea></label></section>
         <section class="modal-tab-panel" data-panel="timeline"><div id="modal-timeline" class="timeline-copy"></div></section>
@@ -52,6 +52,31 @@
       </form>
     </section>
   </div>
+  <div id="column-modal" class="job-modal hidden" role="dialog" aria-modal="true" aria-labelledby="column-modal-title">
+    <div class="modal-backdrop" data-action="close-column-modal"></div>
+    <section class="contact-modal-panel">
+      <header class="contact-modal-header"><h2 id="column-modal-title">Edit column</h2><button class="modal-close" type="button" data-action="close-column-modal" aria-label="Close">&times;</button></header>
+      <form id="column-modal-form" class="contact-modal-form">
+        <label>Column name<input id="column-name-input" type="text"></label>
+        <div class="modal-grid">
+          <div class="dropdown-field">
+            <span class="field-label">Color</span>
+            <button type="button" id="column-color-trigger" class="dropdown-trigger"><span class="swatch" id="column-color-swatch"></span><span id="column-color-label"></span><span class="chevron">⌄</span></button>
+            <div id="column-color-menu" class="dropdown-menu hidden"></div>
+          </div>
+          <div class="dropdown-field">
+            <span class="field-label">Icon</span>
+            <button type="button" id="column-icon-trigger" class="dropdown-trigger"><span class="icon-swatch" id="column-icon-swatch"></span><span id="column-icon-label"></span><span class="chevron">⌄</span></button>
+            <div id="column-icon-menu" class="dropdown-menu hidden"></div>
+          </div>
+        </div>
+        <span class="field-label">Preview</span>
+        <div id="column-preview" class="column-head-preview"></div>
+        <footer class="modal-footer"><button class="modal-secondary" type="button" data-action="close-column-modal">Cancel</button><button class="modal-primary" type="submit">Update column</button></footer>
+      </form>
+    </section>
+  </div>
+  <script src="confetti.min.js"></script>
   <script src="applications.js"></script>
 </body>
 </html>

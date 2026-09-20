@@ -4,22 +4,65 @@ const columns = [
   { status: "offer", label: "Offer", className: "offer" },
   { status: "rejected", label: "Rejected", className: "rejected" },
 ];
-const columnIcons = {
-  applied:
-    '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4h10l4 4v12H5zM9 4v5h6V4M8 15h8M8 18h5"/></svg>',
-  interview:
-    '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 5a9 9 0 0 0 12 12l2 2M7 5l-3 3m3-3-3-3M17 19l3-3m-3 3 3 3"/></svg>',
-  offer:
-    '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 4h12v16H6zM9 4v5h6V4M9 13h6M9 17h4"/></svg>',
-  rejected:
-    '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 4h12v16H6zM9 8l6 6m0-6-6 6"/></svg>',
+const iconLibrary = {
+  document: {
+    label: "Document",
+    svg: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h8l4 4v14H6z"/><path d="M14 3v4h4"/><path d="M9 12h6M9 16h6M9 8h2"/></svg>',
+  },
+  phone: {
+    label: "Phone",
+    svg: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1 1 .3 2 .7 2.9a2 2 0 0 1-.4 2.1L8.1 9.9a16 16 0 0 0 6 6l1.2-1.3a2 2 0 0 1 2.1-.4c.9.4 1.9.6 2.9.7a2 2 0 0 1 1.7 2z"/></svg>',
+  },
+  thumbsUp: {
+    label: "Thumbs Up",
+    svg: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.3a2 2 0 0 0 2-1.7l1.4-9a2 2 0 0 0-2-2.3z"/><path d="M7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3"/></svg>',
+  },
+  thumbsDown: {
+    label: "Thumbs Down",
+    svg: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M10 15v4a3 3 0 0 0 3 3l4-9V2H5.7a2 2 0 0 0-2 1.7l-1.4 9a2 2 0 0 0 2 2.3z"/><path d="M17 2h2.7A2.3 2.3 0 0 1 22 4v7a2.3 2.3 0 0 1-2.3 2H17"/></svg>',
+  },
+  star: {
+    label: "Star",
+    svg: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01z"/></svg>',
+  },
+  bell: {
+    label: "Bell",
+    svg: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg>',
+  },
+  sadFace: {
+    label: "Sad Face",
+    svg: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M16 16s-1.5-2-4-2-4 2-4 2"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/></svg>',
+  },
 };
+const colorLibrary = {
+  blue: { label: "Blue", hex: "#1f8fce" },
+  purple: { label: "Purple", hex: "#6d28d9" },
+  green: { label: "Green", hex: "#16a34a" },
+  red: { label: "Red", hex: "#ef4444" },
+  gray: { label: "Gray", hex: "#9ca3af" },
+  orange: { label: "Orange", hex: "#f0703c" },
+};
+const defaultColumnSettings = {
+  applied: { label: "Applied", color: "purple", icon: "document" },
+  interview: { label: "Interviewing", color: "green", icon: "phone" },
+  offer: { label: "Offer", color: "green", icon: "document" },
+  rejected: { label: "Rejected", color: "red", icon: "thumbsDown" },
+};
+let columnSettings = {};
+
+function getColumnSettings(status) {
+  return {
+    ...defaultColumnSettings[status],
+    ...(columnSettings[status] || {}),
+  };
+}
 let jobs = [];
 let columnOrder = columns.map((column) => column.status);
 let draggedCardId = "";
 let draggedColumnStatus = "";
 let draggedCardOriginalStatus = "";
-let draggedPlaceholder = null;
+let dragOffsetX = 0;
+let dragOffsetY = 0;
 const $ = (selector) => document.querySelector(selector);
 const escapeHtml = (value = "") =>
   String(value).replace(
@@ -33,6 +76,36 @@ const escapeHtml = (value = "") =>
         "'": "&#039;",
       })[char],
   );
+
+// Simple confetti fallback – creates a few colored pieces that fall using CSS animation.
+function showConfetti() {
+  const colors = [
+    "#ff5e7e",
+    "#88ff5a",
+    "#fcff42",
+    "#ffa62d",
+    "#26ccff",
+    "#a25afd",
+    "#ff36ff",
+  ];
+  const pieceCount = 30;
+  for (let i = 0; i < pieceCount; i++) {
+    const div = document.createElement("div");
+    div.className = "confetti-piece";
+    // Random horizontal position
+    div.style.left = Math.random() * 100 + "%";
+    // Random color
+    div.style.background = colors[Math.floor(Math.random() * colors.length)];
+    // Random size
+    const size = 6 + Math.random() * 8;
+    div.style.width = size + "px";
+    div.style.height = size + "px";
+    document.body.appendChild(div);
+    // Remove after animation (3s)
+    setTimeout(() => div.remove(), 3200);
+  }
+  console.log("showConfetti called, pieces created");
+}
 
 async function loadJobs() {
   const data = await chrome.storage.local.get({ jobs: [] });
@@ -49,6 +122,10 @@ async function loadJobs() {
   columns.forEach((column) => {
     if (!columnOrder.includes(column.status)) columnOrder.push(column.status);
   });
+  const savedColumnSettings = await chrome.storage.local.get({
+    columnSettings: {},
+  });
+  columnSettings = savedColumnSettings.columnSettings;
   renderBoard();
 }
 
@@ -79,7 +156,7 @@ function formatDate(value) {
 }
 
 function statusLabel(status) {
-  return columns.find((column) => column.status === status)?.label || status;
+  return getColumnSettings(status)?.label || status;
 }
 
 function relativeTime(value) {
@@ -137,20 +214,78 @@ function renderBoard() {
   );
   $("#board").innerHTML = orderedColumns
     .map((column) => {
-      const columnJobs = visibleJobs.filter(
-        (job) => (job.status || "applied") === column.status,
-      ).sort((first, second) => {
-        const firstOrder = Number.isFinite(first.order) ? first.order : Number.MAX_SAFE_INTEGER;
-        const secondOrder = Number.isFinite(second.order) ? second.order : Number.MAX_SAFE_INTEGER;
-        return firstOrder - secondOrder;
-      });
-      return `<section class="column ${column.className}" data-status="${column.status}"><header class="column-head" draggable="true" data-column-status="${column.status}"><div class="column-title"><span class="column-icon">${columnIcons[column.status]}</span><h2>${column.label}</h2><span class="column-count">${columnJobs.length}</span></div><div class="column-tools"><button type="button" aria-label="Column settings">⚙</button><span class="drag-handle" aria-label="Drag column">⠿</span></div></header><div class="cards">${columnJobs.length ? columnJobs.map(renderCard).join("") : '<p class="empty-column">No applications here</p>'}</div></section>`;
+      const settings = getColumnSettings(column.status);
+      const columnJobs = visibleJobs
+        .filter((job) => (job.status || "applied") === column.status)
+        .sort((first, second) => {
+          const firstOrder = Number.isFinite(first.order)
+            ? first.order
+            : Number.MAX_SAFE_INTEGER;
+          const secondOrder = Number.isFinite(second.order)
+            ? second.order
+            : Number.MAX_SAFE_INTEGER;
+          return firstOrder - secondOrder;
+        });
+      return `<section class="column ${column.className}" data-status="${column.status}"><header class="column-head" draggable="true" data-column-status="${column.status}" style="background:${colorLibrary[settings.color].hex}"><div class="column-title"><span class="column-icon">${iconLibrary[settings.icon].svg}</span><h2>${escapeHtml(settings.label)}</h2><span class="column-count">(${columnJobs.length})</span></div><div class="column-tools"><button type="button" data-action="edit-column" data-status="${column.status}" aria-label="Column settings">⚙</button><span class="drag-handle" aria-label="Drag column">⠿</span></div></header><div class="cards">${columnJobs.length ? columnJobs.map(renderCard).join("") : '<p class="empty-column">No applications here</p>'}</div></section>`;
     })
     .join("");
 }
 
 function renderCard(job) {
   return `<article class="job-card" draggable="true" data-id="${escapeHtml(job.id)}"><p class="company">${escapeHtml(job.company || "Company not specified")}</p><h3 class="job-title">${escapeHtml(job.title || "Untitled job")}</h3><div class="card-meta">${job.location ? `<span>⌖ ${escapeHtml(job.location)}</span>` : ""}${job.workType ? `<span>${escapeHtml(job.workType)}</span>` : ""}<span>◷ ${formatDate(job.createdAt)}</span></div><div class="card-actions"><button data-action="edit" type="button">Edit</button>${job.url ? `<a href="${escapeHtml(job.url)}" target="_blank">Open</a>` : ""}<button class="delete" data-action="delete" type="button">Delete</button></div></article>`;
+}
+
+function formatDescriptionHtml(rawText) {
+  const lines = (rawText || "").split("\n").map((line) => line.trim());
+  const blocks = [];
+  let currentList = null;
+  const isBullet = (line) => /^([•\-*]|\d+[.)])\s+/.test(line);
+  const isHeading = (line, nextLine) =>
+    line.length > 0 &&
+    line.length <= 70 &&
+    !/[.!?]$/.test(line) &&
+    !isBullet(line) &&
+    (nextLine === undefined ||
+      nextLine === "" ||
+      isBullet(nextLine) ||
+      /^[A-ZÄÖÜ0-9]/.test(nextLine));
+
+  lines.forEach((line, index) => {
+    if (!line) {
+      currentList = null;
+      return;
+    }
+    if (isBullet(line)) {
+      const content = line.replace(/^([•\-*]|\d+[.)])\s+/, "");
+      if (!currentList) {
+        currentList = [];
+        blocks.push({ type: "list", items: currentList });
+      }
+      currentList.push(content);
+      return;
+    }
+    currentList = null;
+    if (isHeading(line, lines[index + 1])) {
+      blocks.push({ type: "heading", text: line });
+    } else {
+      blocks.push({ type: "paragraph", text: line });
+    }
+  });
+
+  return blocks
+    .map((block) => {
+      if (block.type === "list")
+        return `<ul>${block.items.map((item) => `<li>${escapeHtml(item)}</li>`).join("")}</ul>`;
+      if (block.type === "heading") return `<h4>${escapeHtml(block.text)}</h4>`;
+      return `<p>${escapeHtml(block.text)}</p>`;
+    })
+    .join("");
+}
+
+function renderDescriptionView(rawText) {
+  $("#description-view").innerHTML =
+    formatDescriptionHtml(rawText) ||
+    '<p class="description-empty">No description saved.</p>';
 }
 
 function openModal(id) {
@@ -173,6 +308,10 @@ function openModal(id) {
     if (form.elements[field]) form.elements[field].value = job[field] || "";
   });
   form.elements.status.value = job.status || "applied";
+  renderDescriptionView(job.description || "");
+  $("#description-view").classList.remove("hidden");
+  $("#description-input").classList.add("hidden");
+  $("#description-edit-toggle").textContent = "Edit";
   renderTimeline(job);
   renderContacts(job);
   $("#contact-form").classList.add("hidden");
@@ -234,6 +373,80 @@ function closeContactModal() {
   $("#contact-modal").classList.add("hidden");
 }
 
+let editingColumnStatus = "";
+let pendingColumnColor = "";
+let pendingColumnIcon = "";
+
+function currentColumnPreviewName() {
+  const nameInput = $("#column-name-input");
+  return nameInput.value.trim() || nameInput.placeholder;
+}
+
+function updateColumnColorTrigger() {
+  const color = colorLibrary[pendingColumnColor];
+  $("#column-color-swatch").style.background = color.hex;
+  $("#column-color-label").textContent = color.label;
+}
+
+function updateColumnIconTrigger() {
+  const icon = iconLibrary[pendingColumnIcon];
+  $("#column-icon-swatch").innerHTML = icon.svg;
+  $("#column-icon-label").textContent = icon.label;
+}
+
+function renderColumnColorMenu() {
+  $("#column-color-menu").innerHTML = Object.entries(colorLibrary)
+    .map(
+      ([key, value]) =>
+        `<button type="button" class="dropdown-option" data-color="${key}"><span class="swatch" style="background:${value.hex}"></span><span>${value.label}</span>${key === pendingColumnColor ? '<span class="option-check">\u2713</span>' : ""}</button>`,
+    )
+    .join("");
+}
+
+function renderColumnIconMenu() {
+  $("#column-icon-menu").innerHTML = Object.entries(iconLibrary)
+    .map(
+      ([key, value]) =>
+        `<button type="button" class="dropdown-option" data-icon="${key}"><span class="icon-swatch">${value.svg}</span><span>${value.label}</span>${key === pendingColumnIcon ? '<span class="option-check">\u2713</span>' : ""}</button>`,
+    )
+    .join("");
+}
+
+function updateColumnPreview() {
+  const color = colorLibrary[pendingColumnColor];
+  const icon = iconLibrary[pendingColumnIcon];
+  const count = jobs.filter(
+    (job) => (job.status || "applied") === editingColumnStatus,
+  ).length;
+  const preview = $("#column-preview");
+  preview.style.background = color.hex;
+  preview.innerHTML = `<span class="column-icon">${icon.svg}</span><span class="preview-name">${escapeHtml(currentColumnPreviewName().toUpperCase())}</span><span class="preview-count">(${count})</span>`;
+}
+
+function openColumnModal(status) {
+  editingColumnStatus = status;
+  const settings = getColumnSettings(status);
+  pendingColumnColor = settings.color;
+  pendingColumnIcon = settings.icon;
+  const nameInput = $("#column-name-input");
+  nameInput.value = "";
+  nameInput.placeholder = settings.label;
+  renderColumnColorMenu();
+  renderColumnIconMenu();
+  updateColumnColorTrigger();
+  updateColumnIconTrigger();
+  updateColumnPreview();
+  $("#column-color-menu").classList.add("hidden");
+  $("#column-icon-menu").classList.add("hidden");
+  $("#column-modal").classList.remove("hidden");
+}
+
+function closeColumnModal() {
+  $("#column-modal").classList.add("hidden");
+  $("#column-color-menu").classList.add("hidden");
+  $("#column-icon-menu").classList.add("hidden");
+}
+
 function closeModal() {
   $("#job-modal").classList.add("hidden");
   document.body.classList.remove("modal-open");
@@ -258,12 +471,6 @@ function showFeedback(message) {
   setTimeout(() => $("#feedback").classList.remove("visible"), 2400);
 }
 
-function syncColumnOrderFromDom() {
-  columnOrder = [...document.querySelectorAll(".column")].map(
-    (column) => column.dataset.status,
-  );
-}
-
 function syncJobOrderFromDom(status) {
   const column = document.querySelector(`.column[data-status="${status}"]`);
   if (!column) return;
@@ -280,72 +487,112 @@ $("#board").addEventListener("dragstart", (event) => {
   const columnHead = event.target.closest("[data-column-status]");
   if (card) {
     event.stopPropagation();
+    document
+      .querySelectorAll(".drag-over")
+      .forEach((element) => element.classList.remove("drag-over"));
     draggedCardId = card.dataset.id;
-    draggedCardOriginalStatus = jobs.find((job) => job.id === draggedCardId)?.status || "applied";
+    draggedCardOriginalStatus =
+      jobs.find((job) => job.id === draggedCardId)?.status || "applied";
     card.classList.add("is-dragging");
-    draggedPlaceholder = document.createElement("div");
-    draggedPlaceholder.className = "drop-placeholder";
-    draggedPlaceholder.style.height = `${card.getBoundingClientRect().height}px`;
-    card.after(draggedPlaceholder);
-    card.style.visibility = "hidden";
+    const cardBounds = card.getBoundingClientRect();
+    dragOffsetX = event.clientX - cardBounds.left;
+    dragOffsetY = event.clientY - cardBounds.top;
+    const transparentDragImage = document.createElement("canvas");
+    transparentDragImage.width = 1;
+    transparentDragImage.height = 1;
+    event.dataTransfer.setDragImage(transparentDragImage, 0, 0);
     event.dataTransfer.effectAllowed = "move";
     event.dataTransfer.setData("text/plain", `card:${draggedCardId}`);
+    // Defer turning the card into a fixed-position element: mutating its
+    // layout synchronously inside dragstart makes some browsers cancel drag.
+    setTimeout(() => {
+      if (draggedCardId !== card.dataset.id) return;
+      card.classList.add("drag-floating");
+      card.style.width = `${cardBounds.width}px`;
+      moveDraggedCard(event.clientX, event.clientY);
+    }, 0);
   } else if (columnHead) {
     event.stopPropagation();
     draggedColumnStatus = columnHead.dataset.columnStatus;
+    const columnEl = columnHead.closest(".column");
     columnHead.classList.add("is-dragging");
+    const columnBounds = columnEl.getBoundingClientRect();
+    dragOffsetX = event.clientX - columnBounds.left;
+    dragOffsetY = event.clientY - columnBounds.top;
+    const transparentColumnDragImage = document.createElement("canvas");
+    transparentColumnDragImage.width = 1;
+    transparentColumnDragImage.height = 1;
+    event.dataTransfer.setDragImage(transparentColumnDragImage, 0, 0);
     event.dataTransfer.effectAllowed = "move";
     event.dataTransfer.setData("text/plain", `column:${draggedColumnStatus}`);
+    // Same deferred-fixed-position trick as card dragging: mutating layout
+    // synchronously inside dragstart makes some browsers cancel the drag.
+    setTimeout(() => {
+      if (draggedColumnStatus !== columnEl.dataset.status) return;
+      columnEl.classList.add("column-floating");
+      columnEl.style.width = `${columnBounds.width}px`;
+      columnEl.style.height = `${columnBounds.height}px`;
+      moveDraggedColumn(event.clientX, event.clientY);
+    }, 0);
   }
 });
 $("#board").addEventListener("dragover", (event) => {
   const column = event.target.closest(".column");
+  if (draggedCardId) moveDraggedCard(event.clientX, event.clientY);
+  if (draggedColumnStatus) moveDraggedColumn(event.clientX, event.clientY);
   if (!column) return;
   event.preventDefault();
-  if (draggedCardId) {
-    const draggedCard = document.querySelector(`.job-card[data-id="${draggedCardId}"]`);
-    const cards = column.querySelector(".cards");
-    const job = jobs.find((item) => item.id === draggedCardId);
-    if (draggedPlaceholder && cards && job) {
-      const previousColumn = document.querySelector(`.column[data-status="${job.status}"]`);
-      const targetCards = [...cards.querySelectorAll(".job-card")].filter((card) => card !== draggedCard);
-      const beforeCard = targetCards.find((card) => event.clientY < card.getBoundingClientRect().top + card.getBoundingClientRect().height / 2);
-      if (beforeCard) cards.insertBefore(draggedPlaceholder, beforeCard);
-      else cards.appendChild(draggedPlaceholder);
-      cards.querySelector(".empty-column")?.remove();
-      if (job.status !== column.dataset.status) {
-        job.status = column.dataset.status;
-        if (previousColumn && !previousColumn.querySelector(".job-card")) {
-          previousColumn.querySelector(".cards").innerHTML = '<p class="empty-column">No applications here</p>';
-        }
-      }
-    }
-    column.classList.add("drag-over");
-    return;
-  }
-  if (draggedColumnStatus) {
-    column.classList.add("drag-over");
-    const draggedColumn = document.querySelector(
-      `.column[data-status="${draggedColumnStatus}"]`,
+});
+function moveDraggedCard(x, y) {
+  const card = document.querySelector(`.job-card[data-id="${draggedCardId}"]`);
+  if (!card) return;
+  card.style.left = `${x - dragOffsetX}px`;
+  card.style.top = `${y - dragOffsetY}px`;
+}
+
+function moveDraggedColumn(x, y) {
+  const columnEl = document.querySelector(
+    `.column[data-status="${draggedColumnStatus}"]`,
+  );
+  if (!columnEl) return;
+  columnEl.style.left = `${x - dragOffsetX}px`;
+  columnEl.style.top = `${y - dragOffsetY}px`;
+}
+
+document.addEventListener("dragover", (event) => {
+  if (draggedCardId) moveDraggedCard(event.clientX, event.clientY);
+  if (draggedColumnStatus) moveDraggedColumn(event.clientX, event.clientY);
+});
+
+function mostOverlappingColumn(card) {
+  return mostOverlappingColumnExcluding(card.getBoundingClientRect(), null);
+}
+
+function mostOverlappingColumnExcluding(bounds, excludeColumn) {
+  let winner = null;
+  let winnerArea = 0;
+  document.querySelectorAll(".column").forEach((column) => {
+    if (column === excludeColumn) return;
+    const columnBounds = column.getBoundingClientRect();
+    const overlapX = Math.max(
+      0,
+      Math.min(bounds.right, columnBounds.right) -
+        Math.max(bounds.left, columnBounds.left),
     );
-    if (draggedColumn && draggedColumn !== column) {
-      const bounds = column.getBoundingClientRect();
-      const insertBefore = event.clientX < bounds.left + bounds.width / 2;
-      if (insertBefore) {
-        column.parentElement.insertBefore(draggedColumn, column);
-      } else {
-        column.parentElement.insertBefore(draggedColumn, column.nextElementSibling);
-      }
-      syncColumnOrderFromDom();
+    const overlapY = Math.max(
+      0,
+      Math.min(bounds.bottom, columnBounds.bottom) -
+        Math.max(bounds.top, columnBounds.top),
+    );
+    const area = overlapX * overlapY;
+    if (area > winnerArea) {
+      winnerArea = area;
+      winner = column;
     }
-    return;
-  }
-  column.classList.add("drag-over");
-});
-$("#board").addEventListener("dragenter", (event) => {
-  const column = event.target.closest(".column");
-  if (column) column.classList.add("drag-over");
-});
+  });
+  return winner;
+}
+
 $("#board").addEventListener("dragleave", (event) => {
   const column = event.target.closest(".column");
   if (column && !column.contains(event.relatedTarget))
@@ -356,19 +603,26 @@ $("#board").addEventListener("drop", async (event) => {
   if (!targetColumn) return;
   event.preventDefault();
   document
-    .querySelectorAll(".drag-over, .is-dragging")
+    .querySelectorAll(".drag-over, .drag-ready, .is-dragging")
     .forEach((element) => element.classList.remove("drag-over", "is-dragging"));
-  const targetStatus = targetColumn.dataset.status;
   if (draggedCardId) {
     const job = jobs.find((item) => item.id === draggedCardId);
-    const draggedCard = document.querySelector(`.job-card[data-id="${draggedCardId}"]`);
-    if (draggedPlaceholder && draggedCard) {
-      draggedPlaceholder.replaceWith(draggedCard);
-      draggedCard.style.visibility = "";
-      draggedCard.classList.remove("is-dragging");
+    const draggedCard = document.querySelector(
+      `.job-card[data-id="${draggedCardId}"]`,
+    );
+    // Overlap must be measured while the card is still floating at the
+    // drop position, before its fixed styles are cleared.
+    const targetColumnForCard = draggedCard
+      ? mostOverlappingColumn(draggedCard)
+      : null;
+    if (draggedCard) {
+      draggedCard.classList.remove("is-dragging", "drag-floating");
+      draggedCard.removeAttribute("style");
     }
-    if (job) {
+    if (job && draggedCard) {
       ensureHistory(job);
+      job.status =
+        targetColumnForCard?.dataset.status || draggedCardOriginalStatus;
       if (draggedCardOriginalStatus !== job.status) {
         job.updatedAt = new Date().toISOString();
         job.history.push({
@@ -377,53 +631,100 @@ $("#board").addEventListener("drop", async (event) => {
           status: job.status,
           at: job.updatedAt,
         });
+        job.order = Number.MAX_SAFE_INTEGER;
       }
-      syncJobOrderFromDom(job.status);
-      if (draggedCardOriginalStatus && draggedCardOriginalStatus !== job.status) {
-        syncJobOrderFromDom(draggedCardOriginalStatus);
-      }
+      const movedLabel = getColumnSettings(job.status).label;
+      // Clear drag state before awaiting so a stray dragend (which fires
+      // right after drop, before this promise settles) can't revert status.
+      draggedCardId = "";
+      draggedCardOriginalStatus = "";
       await chrome.storage.local.set({ jobs });
-      showFeedback(
-        `Moved to ${columns.find((column) => column.status === job.status).label}.`,
-      );
+      showFeedback(`Moved to ${movedLabel}.`);
+      // If the job was moved to the Offer column, celebrate with confetti.
+      if (job.status === "offer") {
+        console.log("Offer status detected, triggering confetti");
+        if (typeof confetti === "function") {
+          try {
+            confetti({ particleCount: 80, spread: 70, origin: { y: 0.6 } });
+          } catch (e) {
+            // If the library fails, fall back to CSS pieces.
+            showConfetti();
+          }
+        } else {
+          // Simple CSS‑based fallback.
+          showConfetti();
+        }
+      }
+      renderBoard();
+      return;
     }
     draggedCardId = "";
     draggedCardOriginalStatus = "";
-    draggedPlaceholder = null;
     renderBoard();
     return;
   }
-  if (draggedColumnStatus && draggedColumnStatus !== targetStatus) {
-    syncColumnOrderFromDom();
-    await chrome.storage.local.set({ columnOrder });
+  if (draggedColumnStatus) {
+    const columnEl = document.querySelector(
+      `.column[data-status="${draggedColumnStatus}"]`,
+    );
+    // Overlap must be measured while the column is still floating at the
+    // drop position, before its fixed styles are cleared.
+    const columnBounds = columnEl ? columnEl.getBoundingClientRect() : null;
+    const winner = columnBounds
+      ? mostOverlappingColumnExcluding(columnBounds, columnEl)
+      : null;
+    if (columnEl) {
+      columnEl.classList.remove("is-dragging", "column-floating");
+      columnEl.removeAttribute("style");
+    }
+    if (winner && winner.dataset.status !== draggedColumnStatus) {
+      const winnerBounds = winner.getBoundingClientRect();
+      const insertBefore =
+        columnBounds.left + columnBounds.width / 2 <
+        winnerBounds.left + winnerBounds.width / 2;
+      const fromIndex = columnOrder.indexOf(draggedColumnStatus);
+      columnOrder.splice(fromIndex, 1);
+      let toIndex = columnOrder.indexOf(winner.dataset.status);
+      if (!insertBefore) toIndex += 1;
+      columnOrder.splice(toIndex, 0, draggedColumnStatus);
+      // Clear drag state before awaiting so a stray dragend (which fires
+      // right after drop, before this promise settles) can't re-derive order.
+      draggedColumnStatus = "";
+      await chrome.storage.local.set({ columnOrder });
+      renderBoard();
+      return;
+    }
     draggedColumnStatus = "";
-    document
-      .querySelectorAll(".drag-over, .is-dragging")
-      .forEach((element) => element.classList.remove("drag-over", "is-dragging"));
+    renderBoard();
   }
 });
 $("#board").addEventListener("dragend", async () => {
   if (draggedCardId) {
     const job = jobs.find((item) => item.id === draggedCardId);
-    const draggedCard = document.querySelector(`.job-card[data-id="${draggedCardId}"]`);
-    draggedPlaceholder?.remove();
+    const draggedCard = document.querySelector(
+      `.job-card[data-id="${draggedCardId}"]`,
+    );
     if (draggedCard) {
-      draggedCard.style.visibility = "";
-      draggedCard.classList.remove("is-dragging");
+      draggedCard.classList.remove("is-dragging", "drag-floating");
+      draggedCard.removeAttribute("style");
     }
     if (job) job.status = draggedCardOriginalStatus || job.status;
     renderBoard();
   }
   if (draggedColumnStatus) {
-    syncColumnOrderFromDom();
-    await chrome.storage.local.set({ columnOrder });
+    const columnEl = document.querySelector(
+      `.column[data-status="${draggedColumnStatus}"]`,
+    );
+    if (columnEl) {
+      columnEl.classList.remove("is-dragging", "column-floating");
+      columnEl.removeAttribute("style");
+    }
   }
   draggedCardId = "";
   draggedCardOriginalStatus = "";
   draggedColumnStatus = "";
-  draggedPlaceholder = null;
   document
-    .querySelectorAll(".drag-over, .is-dragging")
+    .querySelectorAll(".drag-over, .drag-ready, .is-dragging")
     .forEach((element) => element.classList.remove("drag-over", "is-dragging"));
 });
 $("#board").addEventListener("click", async (event) => {
@@ -457,6 +758,22 @@ document
   .forEach((button) =>
     button.addEventListener("click", () => switchTab(button.dataset.tab)),
   );
+$("#description-edit-toggle").addEventListener("click", () => {
+  const view = $("#description-view");
+  const input = $("#description-input");
+  const isEditing = !input.classList.contains("hidden");
+  if (isEditing) {
+    renderDescriptionView(input.value);
+    view.classList.remove("hidden");
+    input.classList.add("hidden");
+    $("#description-edit-toggle").textContent = "Edit";
+  } else {
+    view.classList.add("hidden");
+    input.classList.remove("hidden");
+    $("#description-edit-toggle").textContent = "Preview";
+    input.focus();
+  }
+});
 $("#modal-form").addEventListener("submit", async (event) => {
   event.preventDefault();
   const job = jobs.find((item) => item.id === event.currentTarget.dataset.id);
@@ -533,9 +850,66 @@ $("#contact-modal-form").addEventListener("submit", async (event) => {
   closeContactModal();
   showFeedback("Contact added.");
 });
+$("#board").addEventListener("click", (event) => {
+  const settingsButton = event.target.closest('[data-action="edit-column"]');
+  if (!settingsButton) return;
+  event.stopPropagation();
+  openColumnModal(settingsButton.dataset.status);
+});
+$("#column-modal").addEventListener("click", (event) => {
+  if (event.target.dataset.action === "close-column-modal") closeColumnModal();
+});
+$("#column-name-input").addEventListener("input", updateColumnPreview);
+$("#column-color-trigger").addEventListener("click", (event) => {
+  event.stopPropagation();
+  $("#column-icon-menu").classList.add("hidden");
+  $("#column-color-menu").classList.toggle("hidden");
+});
+$("#column-icon-trigger").addEventListener("click", (event) => {
+  event.stopPropagation();
+  $("#column-color-menu").classList.add("hidden");
+  $("#column-icon-menu").classList.toggle("hidden");
+});
+$("#column-color-menu").addEventListener("click", (event) => {
+  const option = event.target.closest("[data-color]");
+  if (!option) return;
+  pendingColumnColor = option.dataset.color;
+  renderColumnColorMenu();
+  updateColumnColorTrigger();
+  updateColumnPreview();
+  $("#column-color-menu").classList.add("hidden");
+});
+$("#column-icon-menu").addEventListener("click", (event) => {
+  const option = event.target.closest("[data-icon]");
+  if (!option) return;
+  pendingColumnIcon = option.dataset.icon;
+  renderColumnIconMenu();
+  updateColumnIconTrigger();
+  updateColumnPreview();
+  $("#column-icon-menu").classList.add("hidden");
+});
+document.addEventListener("click", (event) => {
+  if (!event.target.closest(".dropdown-field")) {
+    $("#column-color-menu")?.classList.add("hidden");
+    $("#column-icon-menu")?.classList.add("hidden");
+  }
+});
+$("#column-modal-form").addEventListener("submit", async (event) => {
+  event.preventDefault();
+  columnSettings[editingColumnStatus] = {
+    label: currentColumnPreviewName(),
+    color: pendingColumnColor,
+    icon: pendingColumnIcon,
+  };
+  await chrome.storage.local.set({ columnSettings });
+  closeColumnModal();
+  renderBoard();
+  showFeedback("Column updated.");
+});
 document.addEventListener("keydown", (event) => {
   if (event.key === "Escape") {
     closeContactModal();
+    closeColumnModal();
     closeModal();
   }
 });
@@ -548,3 +922,5 @@ chrome.storage.onChanged.addListener((changes, area) => {
 });
 
 loadJobs();
+// Temporary test trigger
+showConfetti();
